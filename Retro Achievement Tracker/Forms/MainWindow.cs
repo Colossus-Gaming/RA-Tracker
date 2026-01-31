@@ -35,7 +35,7 @@ namespace Retro_Achievement_Tracker
 
         private List<Achievement> OldUnlockedAchievements;
 
-        private Timer UserAndGameUpdateTimer;
+        private System.Windows.Forms.Timer UserAndGameUpdateTimer;
 
         private RetroAchievementAPIClient RetroAchievementsAPIClient;
 
