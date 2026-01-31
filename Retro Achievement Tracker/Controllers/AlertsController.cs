@@ -2,6 +2,7 @@
 using Retro_Achievement_Tracker.Models;
 using Retro_Achievement_Tracker.Properties;
 using System;
+using Timer = System.Windows.Forms.Timer;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
