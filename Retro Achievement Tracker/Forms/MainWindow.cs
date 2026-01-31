@@ -111,7 +111,7 @@ namespace Retro_Achievement_Tracker
         {
             base.OnShown(e);
 
-            UserAndGameUpdateTimer = new Timer
+            UserAndGameUpdateTimer = new System.Windows.Forms.Timer
             {
                 Enabled = false
             };
@@ -432,7 +432,7 @@ namespace Retro_Achievement_Tracker
         {
             UserAndGameTimerCounter = (IsStarting || IsBooting) ? 0 : 60;
 
-            UserAndGameUpdateTimer = new Timer
+            UserAndGameUpdateTimer = new System.Windows.Forms.Timer
             {
                 Interval = 500,
                 Enabled = false
