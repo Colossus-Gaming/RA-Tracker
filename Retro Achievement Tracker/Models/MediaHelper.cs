@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Drawing;
 using MediaToolkit;
-using MediaToolkit.Model;
 using System.Globalization;
 using System.IO;
 
