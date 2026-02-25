@@ -1,14 +1,10 @@
-﻿using Newtonsoft.Json;
-using System;
+using Newtonsoft.Json;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace Retro_Achievement_Tracker.Models
+namespace RATracker.Models
 {
     public sealed class StreamLabelController
     {

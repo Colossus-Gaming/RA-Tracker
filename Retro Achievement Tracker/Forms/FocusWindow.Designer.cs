@@ -1,9 +1,9 @@
-﻿using Retro_Achievement_Tracker.Properties;
+using RATracker.Properties;
 using System.Drawing;
 using System.Drawing.Text;
 using System.Linq;
 
-namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     partial class FocusWindow
     {

@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
-namespace Retro_Achievement_Tracker.Models
+namespace RATracker.Models
 {
     [JsonConverter(typeof(UserRankAndScoreConverter))]
     public partial class UserRankAndScore

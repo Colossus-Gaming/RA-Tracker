@@ -1,12 +1,8 @@
-using Retro_Achievement_Tracker.Controllers;
-using Retro_Achievement_Tracker.Models;
-using System;
-using System.Collections.Generic;
+using RATracker.Controllers;
+using RATracker.Models;
 using System.IO;
-using System.Linq;
-using System.Windows.Forms;
 
-namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     /// <summary>
     /// Partial class containing Alerts overlay functionality.

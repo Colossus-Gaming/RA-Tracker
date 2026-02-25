@@ -1,9 +1,6 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Newtonsoft.Json;
 
-namespace Retro_Achievement_Tracker.Models
+namespace RATracker.Models
 {
     [JsonConverter(typeof(GameInfoConverter))]
     public partial class GameInfo : IComparable<GameInfo>
@@ -260,6 +257,7 @@ namespace Retro_Achievement_Tracker.Models
         {
             get
             {
+                if (AchievementsPossible == 0) return "0.00";
                 return (AchievementsEarned / (float)AchievementsPossible * 100f).ToString("0.00");
             }
         }

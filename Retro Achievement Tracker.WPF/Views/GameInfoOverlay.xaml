@@ -1,0 +1,350 @@
+<Window x:Class="RATracker.WPF.Views.GameInfoOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:RATracker.WPF.Controls"
+        xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
+        mc:Ignorable="d"
+        Title="Game Info Overlay"
+        Width="{Binding WindowWidth, Mode=TwoWay}"
+        Height="{Binding WindowHeight, Mode=TwoWay}"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip"
+        SizeChanged="Window_SizeChanged"
+        d:DataContext="{d:DesignInstance Type=vm:GameInfoViewModel, IsDesignTimeCreatable=True}">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        
+        <!-- Easing Functions -->
+        <CubicEase x:Key="EaseOut" EasingMode="EaseOut"/>
+        <BackEase x:Key="BackEaseOut" EasingMode="EaseOut" Amplitude="0.3"/>
+        
+        <!-- Show Animation -->
+        <Storyboard x:Key="ShowAnimation">
+            <DoubleAnimation 
+                Storyboard.TargetName="MainContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1" Duration="0:0:0.4"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="BadgeTransform"
+                Storyboard.TargetProperty="X"
+                From="-100" To="0" Duration="0:0:0.5"
+                EasingFunction="{StaticResource BackEaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="ContentTransform"
+                Storyboard.TargetProperty="X"
+                From="100" To="0" Duration="0:0:0.5"
+                BeginTime="0:0:0.1"
+                EasingFunction="{StaticResource EaseOut}"/>
+        </Storyboard>
+        
+        <!-- Hide Animation -->
+        <Storyboard x:Key="HideAnimation">
+            <DoubleAnimation 
+                Storyboard.TargetName="MainContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="1" To="0" Duration="0:0:0.3"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="BadgeTransform"
+                Storyboard.TargetProperty="X"
+                From="0" To="-100" Duration="0:0:0.3"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="ContentTransform"
+                Storyboard.TargetProperty="X"
+                From="0" To="100" Duration="0:0:0.3"
+                EasingFunction="{StaticResource EaseOut}"/>
+        </Storyboard>
+    </Window.Resources>
+
+    <Grid>
+        <!-- Draggable positioning guide (visible when content is hidden) -->
+        <Border x:Name="PositioningGuide" Background="Transparent">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=MainContainer, Path=Opacity}" Value="1">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Rectangle Stroke="#40FFD700" 
+                           StrokeThickness="2"
+                           StrokeDashArray="4 2"
+                           RadiusX="5"
+                           RadiusY="5"
+                           Margin="5"/>
+                <TextBlock Text="Game Info Overlay" 
+                           FontSize="14" 
+                           Foreground="#80FFD700"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontFamily="Segoe UI"
+                           FontWeight="SemiBold"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Container -->
+        <Border x:Name="MainContainer"
+            Background="{Binding BackgroundColor}"
+            CornerRadius="{Binding ContainerCornerRadiusValue}"
+            Margin="{Binding ContainerMarginValue}"
+            Opacity="0">
+        
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="BorderThickness" Value="0"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding BorderEnabled}" Value="True">
+                        <Setter Property="BorderThickness" Value="3"/>
+                        <Setter Property="BorderBrush" Value="{Binding BorderColor}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="15" ShadowDepth="3" Opacity="0.6"/>
+        </Border.Effect>
+        
+        <Grid Margin="15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Game Badge -->
+            <Border x:Name="BadgeContainer"
+                    Grid.Column="0"
+                    CornerRadius="{Binding BadgeCornerRadiusValue}"
+                    ClipToBounds="True"
+                    VerticalAlignment="Top"
+                    Margin="0,0,15,0"
+                    Visibility="{Binding ShowBadge, Converter={StaticResource BoolToVis}}"
+                    RenderTransformOrigin="0.5,0.5">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="BadgeTransform"/>
+                </Border.RenderTransform>
+                
+                <Image Source="{Binding BadgeUri}"
+                       Width="{Binding BadgeSize}"
+                       Height="{Binding BadgeSize}"
+                       Stretch="UniformToFill"/>
+            </Border>
+            
+            <!-- Content Area -->
+            <StackPanel Grid.Column="1" 
+                        VerticalAlignment="Center"
+                        RenderTransformOrigin="0.5,0.5">
+                <StackPanel.RenderTransform>
+                    <TranslateTransform x:Name="ContentTransform"/>
+                </StackPanel.RenderTransform>
+                
+                <!-- Title Row -->
+                <Grid Margin="{Binding RowSpacingValue}"
+                      Visibility="{Binding ShowTitle, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="0"
+                        Text="{Binding TitleLabel}"
+                        TextFontFamily="{Binding LabelFontFamily}"
+                        TextFontSize="{Binding LabelFontSize}"
+                        TextFontWeight="Bold"
+                        TextColor="{Binding LabelColor}"
+                        StrokeColor="{Binding LabelStrokeColor}"
+                        StrokeThickness="{Binding LabelStrokeSize}"
+                        StrokeEnabled="{Binding LabelStrokeEnabled}"
+                        Margin="0,0,10,0"/>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="1"
+                        Text="{Binding TitleValue}"
+                        TextFontFamily="{Binding ValueFontFamily}"
+                        TextFontSize="{Binding TitleValueFontSize}"
+                        TextFontWeight="Bold"
+                        TextColor="{Binding ValueColor}"
+                        StrokeColor="{Binding ValueStrokeColor}"
+                        StrokeThickness="{Binding ValueStrokeSize}"
+                        StrokeEnabled="{Binding ValueStrokeEnabled}"
+                        TextWrapping="Wrap"/>
+                </Grid>
+                
+                <!-- Console Row -->
+                <Grid Margin="{Binding RowSpacingValue}"
+                      Visibility="{Binding ShowConsole, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="0"
+                        Text="{Binding ConsoleLabel}"
+                        TextFontFamily="{Binding LabelFontFamily}"
+                        TextFontSize="{Binding LabelFontSize}"
+                        TextFontWeight="Bold"
+                        TextColor="{Binding LabelColor}"
+                        StrokeColor="{Binding LabelStrokeColor}"
+                        StrokeThickness="{Binding LabelStrokeSize}"
+                        StrokeEnabled="{Binding LabelStrokeEnabled}"
+                        Margin="0,0,10,0"/>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="1"
+                        Text="{Binding ConsoleValue}"
+                        TextFontFamily="{Binding ValueFontFamily}"
+                        TextFontSize="{Binding ValueFontSize}"
+                        TextFontWeight="Normal"
+                        TextColor="{Binding ValueColor}"
+                        StrokeColor="{Binding ValueStrokeColor}"
+                        StrokeThickness="{Binding ValueStrokeSize}"
+                        StrokeEnabled="{Binding ValueStrokeEnabled}"/>
+                </Grid>
+                
+                <!-- Developer Row -->
+                <Grid Margin="{Binding RowSpacingValue}"
+                      Visibility="{Binding ShowDeveloper, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="0"
+                        Text="{Binding DeveloperLabel}"
+                        TextFontFamily="{Binding LabelFontFamily}"
+                        TextFontSize="{Binding LabelFontSize}"
+                        TextFontWeight="Bold"
+                        TextColor="{Binding LabelColor}"
+                        StrokeColor="{Binding LabelStrokeColor}"
+                        StrokeThickness="{Binding LabelStrokeSize}"
+                        StrokeEnabled="{Binding LabelStrokeEnabled}"
+                        Margin="0,0,10,0"/>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="1"
+                        Text="{Binding DeveloperValue}"
+                        TextFontFamily="{Binding ValueFontFamily}"
+                        TextFontSize="{Binding ValueFontSize}"
+                        TextFontWeight="Normal"
+                        TextColor="{Binding ValueColor}"
+                        StrokeColor="{Binding ValueStrokeColor}"
+                        StrokeThickness="{Binding ValueStrokeSize}"
+                        StrokeEnabled="{Binding ValueStrokeEnabled}"/>
+                </Grid>
+                
+                <!-- Publisher Row -->
+                <Grid Margin="{Binding RowSpacingValue}"
+                      Visibility="{Binding ShowPublisher, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="0"
+                        Text="{Binding PublisherLabel}"
+                        TextFontFamily="{Binding LabelFontFamily}"
+                        TextFontSize="{Binding LabelFontSize}"
+                        TextFontWeight="Bold"
+                        TextColor="{Binding LabelColor}"
+                        StrokeColor="{Binding LabelStrokeColor}"
+                        StrokeThickness="{Binding LabelStrokeSize}"
+                        StrokeEnabled="{Binding LabelStrokeEnabled}"
+                        Margin="0,0,10,0"/>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="1"
+                        Text="{Binding PublisherValue}"
+                        TextFontFamily="{Binding ValueFontFamily}"
+                        TextFontSize="{Binding ValueFontSize}"
+                        TextFontWeight="Normal"
+                        TextColor="{Binding ValueColor}"
+                        StrokeColor="{Binding ValueStrokeColor}"
+                        StrokeThickness="{Binding ValueStrokeSize}"
+                        StrokeEnabled="{Binding ValueStrokeEnabled}"/>
+                </Grid>
+                
+                <!-- Genre Row -->
+                <Grid Margin="{Binding RowSpacingValue}"
+                      Visibility="{Binding ShowGenre, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="0"
+                        Text="{Binding GenreLabel}"
+                        TextFontFamily="{Binding LabelFontFamily}"
+                        TextFontSize="{Binding LabelFontSize}"
+                        TextFontWeight="Bold"
+                        TextColor="{Binding LabelColor}"
+                        StrokeColor="{Binding LabelStrokeColor}"
+                        StrokeThickness="{Binding LabelStrokeSize}"
+                        StrokeEnabled="{Binding LabelStrokeEnabled}"
+                        Margin="0,0,10,0"/>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="1"
+                        Text="{Binding GenreValue}"
+                        TextFontFamily="{Binding ValueFontFamily}"
+                        TextFontSize="{Binding ValueFontSize}"
+                        TextFontWeight="Normal"
+                        TextColor="{Binding ValueColor}"
+                        StrokeColor="{Binding ValueStrokeColor}"
+                        StrokeThickness="{Binding ValueStrokeSize}"
+                        StrokeEnabled="{Binding ValueStrokeEnabled}"/>
+                </Grid>
+                
+                <!-- Released Row -->
+                <Grid Margin="{Binding RowSpacingValue}"
+                      Visibility="{Binding ShowReleased, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="0"
+                        Text="{Binding ReleasedLabel}"
+                        TextFontFamily="{Binding LabelFontFamily}"
+                        TextFontSize="{Binding LabelFontSize}"
+                        TextFontWeight="Bold"
+                        TextColor="{Binding LabelColor}"
+                        StrokeColor="{Binding LabelStrokeColor}"
+                        StrokeThickness="{Binding LabelStrokeSize}"
+                        StrokeEnabled="{Binding LabelStrokeEnabled}"
+                        Margin="0,0,10,0"/>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="1"
+                        Text="{Binding ReleasedValue}"
+                        TextFontFamily="{Binding ValueFontFamily}"
+                        TextFontSize="{Binding ValueFontSize}"
+                        TextFontWeight="Normal"
+                        TextColor="{Binding ValueColor}"
+                        StrokeColor="{Binding ValueStrokeColor}"
+                        StrokeThickness="{Binding ValueStrokeSize}"
+                        StrokeEnabled="{Binding ValueStrokeEnabled}"/>
+                </Grid>
+            </StackPanel>
+        </Grid>
+    </Border>
+    </Grid>
+</Window>

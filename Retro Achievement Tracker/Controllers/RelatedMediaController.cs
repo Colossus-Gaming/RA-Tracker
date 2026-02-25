@@ -1,8 +1,7 @@
-﻿using Retro_Achievement_Tracker.Forms;
-using Retro_Achievement_Tracker.Properties;
-using System.Threading.Tasks;
+using RATracker.Forms;
+using RATracker.Properties;
 
-namespace Retro_Achievement_Tracker.Controllers
+namespace RATracker.Controllers
 {
     public sealed class RelatedMediaController
     {

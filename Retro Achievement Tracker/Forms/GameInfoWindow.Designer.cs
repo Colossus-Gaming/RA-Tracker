@@ -1,7 +1,7 @@
-﻿using Retro_Achievement_Tracker.Models;
-using Retro_Achievement_Tracker.Properties;
+using RATracker.Models;
+using RATracker.Properties;
 
-namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     partial class GameInfoWindow
     {

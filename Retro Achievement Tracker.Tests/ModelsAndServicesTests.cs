@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace Retro_Achievement_Tracker.Tests
 {
     #region Achievement Tests

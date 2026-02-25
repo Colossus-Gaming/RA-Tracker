@@ -1,19 +1,13 @@
-﻿using Retro_Achievement_Tracker.Forms;
-using Retro_Achievement_Tracker.Models;
-using Retro_Achievement_Tracker.Properties;
-using System;
+using RATracker.Forms;
+using RATracker.Models;
+using RATracker.Properties;
 using Timer = System.Windows.Forms.Timer;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
-namespace Retro_Achievement_Tracker.Controllers
+namespace RATracker.Controllers
 {
     public sealed class AlertsController
     {

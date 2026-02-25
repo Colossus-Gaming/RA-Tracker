@@ -1,0 +1,264 @@
+<Window x:Class="RATracker.WPF.Views.AchievementListOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
+        mc:Ignorable="d"
+        Title="Achievement List Overlay"
+        Width="{Binding WindowWidth, Mode=TwoWay}"
+        Height="{Binding WindowHeight, Mode=TwoWay}"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip"
+        SizeChanged="Window_SizeChanged"
+        d:DataContext="{d:DesignInstance Type=vm:AchievementListViewModel, IsDesignTimeCreatable=True}">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        
+        <!-- Easing Functions -->
+        <CubicEase x:Key="EaseOut" EasingMode="EaseOut"/>
+        <BackEase x:Key="BackEaseOut" EasingMode="EaseOut" Amplitude="0.3"/>
+        
+        <!-- Show Animation -->
+        <Storyboard x:Key="ShowAnimation">
+            <DoubleAnimation 
+                Storyboard.TargetName="MainContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1" Duration="0:0:0.4"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="ContainerScale"
+                Storyboard.TargetProperty="ScaleX"
+                From="0.95" To="1" Duration="0:0:0.4"
+                EasingFunction="{StaticResource BackEaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="ContainerScale"
+                Storyboard.TargetProperty="ScaleY"
+                From="0.95" To="1" Duration="0:0:0.4"
+                EasingFunction="{StaticResource BackEaseOut}"/>
+        </Storyboard>
+        
+        <!-- Hide Animation -->
+        <Storyboard x:Key="HideAnimation">
+            <DoubleAnimation 
+                Storyboard.TargetName="MainContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="1" To="0" Duration="0:0:0.3"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="ContainerScale"
+                Storyboard.TargetProperty="ScaleX"
+                From="1" To="0.95" Duration="0:0:0.3"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="ContainerScale"
+                Storyboard.TargetProperty="ScaleY"
+                From="1" To="0.95" Duration="0:0:0.3"
+                EasingFunction="{StaticResource EaseOut}"/>
+        </Storyboard>
+        
+        <!-- Achievement Item Style with Tooltip -->
+        <Style x:Key="AchievementBadgeStyle" TargetType="Border">
+            <Setter Property="ToolTipService.InitialShowDelay" Value="300"/>
+            <Setter Property="ToolTipService.ShowDuration" Value="30000"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        
+        <!-- Tooltip Template -->
+        <ControlTemplate x:Key="AchievementTooltipTemplate" TargetType="ToolTip">
+            <Border Background="#E0202020" 
+                    BorderBrush="Gold" 
+                    BorderThickness="1" 
+                    CornerRadius="6"
+                    Padding="12"
+                    MaxWidth="300">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.5"/>
+                </Border.Effect>
+                <StackPanel>
+                    <!-- Title -->
+                    <TextBlock Text="{Binding Title}" 
+                               FontFamily="{Binding DataContext.TooltipFontFamily, RelativeSource={RelativeSource AncestorType=Window}}"
+                               FontSize="{Binding DataContext.TooltipTitleFontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                               FontWeight="Bold"
+                               Foreground="Gold"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,6"/>
+                    
+                    <!-- Points -->
+                    <TextBlock FontFamily="{Binding DataContext.TooltipFontFamily, RelativeSource={RelativeSource AncestorType=Window}}"
+                               FontSize="{Binding DataContext.TooltipPointsFontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                               Foreground="Yellow"
+                               Margin="0,0,0,6">
+                        <Run Text="{Binding Points}"/>
+                        <Run Text=" points"/>
+                    </TextBlock>
+                    
+                    <!-- Description -->
+                    <TextBlock Text="{Binding Description}" 
+                               FontFamily="{Binding DataContext.TooltipFontFamily, RelativeSource={RelativeSource AncestorType=Window}}"
+                               FontSize="{Binding DataContext.TooltipDescriptionFontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                               Foreground="White"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,4"/>
+                    
+                    <!-- Unlock Status -->
+                    <TextBlock FontFamily="{Binding DataContext.TooltipFontFamily, RelativeSource={RelativeSource AncestorType=Window}}"
+                               FontSize="{Binding DataContext.TooltipDescriptionFontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                               Foreground="LightGray"
+                               Margin="0,4,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="?? Locked"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsUnlocked}" Value="True">
+                                        <Setter Property="Text" Value="? Unlocked"/>
+                                        <Setter Property="Foreground" Value="LightGreen"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </ControlTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <!-- Draggable positioning guide (visible when content is hidden) -->
+        <Border x:Name="PositioningGuide" Background="Transparent">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=MainContainer, Path=Opacity}" Value="1">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Rectangle Stroke="#40FFD700" 
+                           StrokeThickness="2"
+                           StrokeDashArray="4 2"
+                           RadiusX="5"
+                           RadiusY="5"
+                           Margin="5"/>
+                <TextBlock Text="Achievement List Overlay" 
+                           FontSize="14" 
+                           Foreground="#80FFD700"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontFamily="Segoe UI"
+                           FontWeight="SemiBold"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Container -->
+        <Border x:Name="MainContainer"
+            Background="{Binding BackgroundColor}"
+            CornerRadius="{Binding ContainerCornerRadiusValue}"
+            Margin="{Binding ContainerMarginValue}"
+            Opacity="0"
+            RenderTransformOrigin="0.5,0.5">
+        
+        <Border.RenderTransform>
+            <ScaleTransform x:Name="ContainerScale"/>
+        </Border.RenderTransform>
+        
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="BorderThickness" Value="0"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding BorderEnabled}" Value="True">
+                        <Setter Property="BorderThickness" Value="3"/>
+                        <Setter Property="BorderBrush" Value="{Binding BorderColor}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="15" ShadowDepth="3" Opacity="0.6"/>
+        </Border.Effect>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Progress Header (optional) -->
+            <Border Grid.Row="0" 
+                    Background="#40000000" 
+                    Padding="10,6"
+                    CornerRadius="6,6,0,0"
+                    Visibility="Collapsed">
+                <TextBlock Text="{Binding ProgressText}"
+                           FontFamily="Segoe UI"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           HorizontalAlignment="Center"/>
+            </Border>
+            
+            <!-- Achievement Grid -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto" 
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="8">
+                <ItemsControl ItemsSource="{Binding Achievements}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="{Binding DataContext.BadgeSpacingValue, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CornerRadius="{Binding DataContext.BadgeCornerRadiusValue, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    ClipToBounds="True"
+                                    Opacity="{Binding Opacity}"
+                                    ToolTipService.InitialShowDelay="300"
+                                    ToolTipService.ShowDuration="30000"
+                                    Cursor="Hand">
+                                
+                                <!-- Dynamic border based on unlock status -->
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderThickness" Value="{Binding DataContext.LockedBorderThickness, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                        <Setter Property="BorderBrush" Value="{Binding DataContext.LockedBorderColor, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnlocked}" Value="True">
+                                                <Setter Property="BorderThickness" Value="{Binding DataContext.UnlockedBorderThickness, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                <Setter Property="BorderBrush" Value="{Binding DataContext.UnlockedBorderColor, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                
+                                <!-- Tooltip -->
+                                <Border.ToolTip>
+                                    <ToolTip Template="{StaticResource AchievementTooltipTemplate}"/>
+                                </Border.ToolTip>
+                                
+                                <!-- Badge Image -->
+                                <Image Source="{Binding BadgeUri}"
+                                       Width="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Height="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Stretch="UniformToFill"
+                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+    </Grid>
+</Window>

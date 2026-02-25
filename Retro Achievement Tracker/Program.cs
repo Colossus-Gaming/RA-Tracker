@@ -1,8 +1,6 @@
-﻿using Retro_Achievement_Tracker.Services;
-using System;
-using System.Windows.Forms;
+using RATracker.Services;
 
-namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     static class Program
     {

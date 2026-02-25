@@ -1,0 +1,9 @@
+{
+  "solution": {
+    "path": "Retro Achievement Tracker.sln",
+    "projects": [
+      "Retro Achievement Tracker.WPF\\Retro Achievement Tracker.WPF.csproj",
+      "Retro Achievement Tracker\\Retro Achievement Tracker.csproj"
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-﻿namespace Retro_Achievement_Tracker.Forms
+namespace RATracker.Forms
 {
     partial class AlertsWindow
     {

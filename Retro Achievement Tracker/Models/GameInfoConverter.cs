@@ -1,8 +1,8 @@
-﻿namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using Retro_Achievement_Tracker.Models;
+    using RATracker.Models;
     using System;
     using System.Collections.Generic;
     using System.Reflection;

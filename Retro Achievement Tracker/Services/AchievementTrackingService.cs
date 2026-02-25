@@ -1,10 +1,6 @@
-using Retro_Achievement_Tracker.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using RATracker.Models;
 
-namespace Retro_Achievement_Tracker.Services
+namespace RATracker.Services
 {
     /// <summary>
     /// Service responsible for tracking achievement progress and detecting changes.

@@ -1,9 +1,7 @@
-using Retro_Achievement_Tracker.Controllers;
-using Retro_Achievement_Tracker.Models;
-using System;
-using System.Windows.Forms;
+using RATracker.Controllers;
+using RATracker.Models;
 
-namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     /// <summary>
     /// Partial class containing Focus overlay functionality.

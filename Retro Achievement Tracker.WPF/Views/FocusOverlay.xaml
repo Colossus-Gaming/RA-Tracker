@@ -1,0 +1,443 @@
+<Window x:Class="RATracker.WPF.Views.FocusOverlay"
+xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+xmlns:controls="clr-namespace:RATracker.WPF.Controls"
+xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
+mc:Ignorable="d"
+        Title="Focus Overlay" 
+        Width="{Binding WindowWidth, Mode=TwoWay}" 
+        Height="{Binding WindowHeight, Mode=TwoWay}"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip"
+        SizeChanged="Window_SizeChanged"
+        d:DataContext="{d:DesignInstance Type=vm:FocusViewModel, IsDesignTimeCreatable=True}">
+
+    <Window.Resources>
+        <!-- Visibility Converter -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        
+        <!-- Easing Functions -->
+        <CubicEase x:Key="EaseOut" EasingMode="EaseOut"/>
+        <BackEase x:Key="BackEaseOut" EasingMode="EaseOut" Amplitude="0.3"/>
+        <ElasticEase x:Key="BounceEase" EasingMode="EaseOut" Oscillations="1" Springiness="4"/>
+        
+        <!-- Show Focus Animation Storyboard -->
+        <Storyboard x:Key="ShowFocusAnimation">
+            <!-- Container fade in -->
+            <DoubleAnimation 
+                Storyboard.TargetName="FocusContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1" Duration="0:0:0.3"/>
+            
+            <!-- Badge slides in from left with bounce -->
+            <DoubleAnimation 
+                Storyboard.TargetName="BadgeTransform"
+                Storyboard.TargetProperty="X"
+                From="-200" To="0" Duration="0:0:0.6"
+                EasingFunction="{StaticResource BackEaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="Badge"
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1" Duration="0:0:0.4"/>
+            
+            <!-- Title slides in from right (delayed) -->
+            <DoubleAnimation 
+                Storyboard.TargetName="TitleTransform"
+                Storyboard.TargetProperty="X"
+                From="400" To="0" Duration="0:0:0.6"
+                BeginTime="0:0:0.3"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="TitleContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1" Duration="0:0:0.3"
+                BeginTime="0:0:0.3"/>
+            
+            <!-- Line slides in from right (more delayed) -->
+            <DoubleAnimation 
+                Storyboard.TargetName="LineTransform"
+                Storyboard.TargetProperty="X"
+                From="400" To="0" Duration="0:0:0.5"
+                BeginTime="0:0:0.5"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="Line"
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1" Duration="0:0:0.3"
+                BeginTime="0:0:0.5"/>
+            
+            <!-- Points slide in from left (delayed) -->
+            <DoubleAnimation 
+                Storyboard.TargetName="PointsTransform"
+                Storyboard.TargetProperty="X"
+                From="-150" To="0" Duration="0:0:0.5"
+                BeginTime="0:0:0.4"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="PointsContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1" Duration="0:0:0.3"
+                BeginTime="0:0:0.4"/>
+            
+            <!-- Description slides in from right (most delayed) -->
+            <DoubleAnimation 
+                Storyboard.TargetName="DescriptionTransform"
+                Storyboard.TargetProperty="X"
+                From="400" To="0" Duration="0:0:0.6"
+                BeginTime="0:0:0.7"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="DescriptionContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1" Duration="0:0:0.3"
+                BeginTime="0:0:0.7"/>
+        </Storyboard>
+        
+        <!-- Hide Focus Animation Storyboard -->
+        <Storyboard x:Key="HideFocusAnimation">
+            <!-- Everything fades out together -->
+            <DoubleAnimation 
+                Storyboard.TargetName="FocusContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="1" To="0" Duration="0:0:0.4"/>
+            
+            <!-- Badge slides out to left -->
+            <DoubleAnimation 
+                Storyboard.TargetName="BadgeTransform"
+                Storyboard.TargetProperty="X"
+                From="0" To="-200" Duration="0:0:0.4"
+                EasingFunction="{StaticResource EaseOut}"/>
+            
+            <!-- Content slides out to right -->
+            <DoubleAnimation 
+                Storyboard.TargetName="TitleTransform"
+                Storyboard.TargetProperty="X"
+                From="0" To="300" Duration="0:0:0.4"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="LineTransform"
+                Storyboard.TargetProperty="X"
+                From="0" To="300" Duration="0:0:0.4"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="DescriptionTransform"
+                Storyboard.TargetProperty="X"
+                From="0" To="300" Duration="0:0:0.4"
+                EasingFunction="{StaticResource EaseOut}"/>
+            <DoubleAnimation 
+                Storyboard.TargetName="PointsTransform"
+                Storyboard.TargetProperty="X"
+                From="0" To="-100" Duration="0:0:0.4"
+                EasingFunction="{StaticResource EaseOut}"/>
+        </Storyboard>
+        
+        <!-- Mastery Badge Glow Animation -->
+        <Storyboard x:Key="MasteryGlowAnimation" RepeatBehavior="Forever" AutoReverse="True">
+            <ColorAnimation 
+                Storyboard.TargetName="BadgeBorder"
+                Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                From="Gold" To="Orange" Duration="0:0:1"/>
+        </Storyboard>
+    </Window.Resources>
+
+    <Grid>
+        <!-- Draggable positioning guide (visible when content is hidden) -->
+        <Border x:Name="PositioningGuide" Background="Transparent">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <!-- Hide when content is visible -->
+                        <DataTrigger Binding="{Binding ElementName=FocusContainer, Path=Opacity}" Value="1">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Rectangle Stroke="#40FFD700" 
+                           StrokeThickness="2"
+                           StrokeDashArray="4 2"
+                           RadiusX="5"
+                           RadiusY="5"
+                           Margin="5"/>
+                <TextBlock Text="Focus Overlay" 
+                           FontSize="14" 
+                           Foreground="#80FFD700"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontFamily="Segoe UI"
+                           FontWeight="SemiBold"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Container -->
+        <Border x:Name="FocusContainer" 
+                Background="{Binding BackgroundColor}"
+                CornerRadius="{Binding ContainerCornerRadiusValue}"
+                Margin="{Binding ContainerMarginValue}"
+                Opacity="0">
+        
+        <!-- Border styling based on BorderEnabled -->
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="BorderThickness" Value="0"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding BorderEnabled}" Value="True">
+                        <Setter Property="BorderThickness" Value="3"/>
+                        <Setter Property="BorderBrush" Value="{Binding BorderColor}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        
+        <!-- Drop shadow effect -->
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="15" ShadowDepth="3" Opacity="0.6"/>
+        </Border.Effect>
+        
+        <Grid Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>  <!-- Badge -->
+                <ColumnDefinition Width="*"/>     <!-- Content -->
+            </Grid.ColumnDefinitions>
+            
+            <!-- Achievement Badge with optional gold border for mastery -->
+            <Border x:Name="BadgeBorder"
+                    Grid.Column="0"
+                    CornerRadius="{Binding BadgeCornerRadiusValue}"
+                    Opacity="0"
+                    Visibility="{Binding ShowBadge, Converter={StaticResource BoolToVis}}"
+                    ClipToBounds="True"
+                    RenderTransformOrigin="0.5,0.5">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="BadgeTransform"/>
+                </Border.RenderTransform>
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsMasteryMode}" Value="True">
+                                <Setter Property="BorderThickness" Value="4"/>
+                                <Setter Property="BorderBrush" Value="Gold"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                
+                <Image x:Name="Badge"
+                       Source="{Binding BadgeUri}"
+                       Width="{Binding BadgeSize}" 
+                       Height="{Binding BadgeSize}"
+                       Stretch="UniformToFill"/>
+            </Border>
+            
+            <!-- Content Area -->
+            <Grid Grid.Column="1" Margin="{Binding ContentSpacingMargin}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>  <!-- Title -->
+                    <RowDefinition Height="Auto"/>  <!-- Line -->
+                    <RowDefinition Height="*"/>     <!-- Description/Points -->
+                </Grid.RowDefinitions>
+                
+                <!-- Title with optional Set Name Badge -->
+                <Grid x:Name="TitleContainer" Grid.Row="0" Opacity="0" 
+                      Visibility="{Binding ShowTitle, Converter={StaticResource BoolToVis}}"
+                      RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform>
+                        <TranslateTransform x:Name="TitleTransform"/>
+                    </Grid.RenderTransform>
+                    
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <controls:OutlinedTextBlock 
+                        Grid.Column="0"
+                        Text="{Binding Title}"
+                        TextFontFamily="{Binding TitleFontFamily}"
+                        TextFontSize="{Binding TitleFontSize}"
+                        TextFontWeight="Bold"
+                        TextColor="{Binding TitleColor}"
+                        StrokeColor="{Binding TitleStrokeColor}"
+                        StrokeThickness="{Binding TitleStrokeSize}"
+                        StrokeEnabled="{Binding TitleStrokeEnabled}"
+                        TextWrapping="NoWrap"
+                        TextAlignment="Left"
+                        VerticalTextAlignment="Center"/>
+                    
+                    <!-- Set Name Badge (visible for multi-set games) -->
+                    <Border Grid.Column="1"
+                            Visibility="{Binding HasSetName, Converter={StaticResource BoolToVis}}"
+                            Background="#FF3B82F6"
+                            CornerRadius="4"
+                            Padding="8,2"
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CurrentSetName}"
+                                   Foreground="White"
+                                   FontFamily="{Binding TitleFontFamily}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+                
+                <!-- Separator Line -->
+                <Rectangle x:Name="Line"
+                           Grid.Row="1"
+                           Height="{Binding LineHeight}"
+                           Fill="{Binding LineColor}"
+                           RadiusX="2" RadiusY="2"
+                           Margin="{Binding LineMarginValue}"
+                           Opacity="0"
+                           Visibility="{Binding ShowLine, Converter={StaticResource BoolToVis}}"
+                           RenderTransformOrigin="0.5,0.5">
+                    <Rectangle.RenderTransform>
+                        <TranslateTransform x:Name="LineTransform"/>
+                    </Rectangle.RenderTransform>
+                    <Rectangle.Style>
+                        <Style TargetType="Rectangle">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding LineStrokeEnabled}" Value="True">
+                                    <Setter Property="Stroke" Value="{Binding LineStrokeColor}"/>
+                                    <Setter Property="StrokeThickness" Value="{Binding LineStrokeSize}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Rectangle.Style>
+                </Rectangle>
+                
+                <!-- Achievement Mode: Description + Points -->
+                <Grid Grid.Row="2">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMasteryMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>  <!-- Points -->
+                        <ColumnDefinition Width="*"/>     <!-- Description -->
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Points -->
+                    <Grid x:Name="PointsContainer" Grid.Column="0" Opacity="0" 
+                          VerticalAlignment="Bottom" Margin="0,0,10,0"
+                          Visibility="{Binding ShowPoints, Converter={StaticResource BoolToVis}}"
+                          RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <TranslateTransform x:Name="PointsTransform"/>
+                        </Grid.RenderTransform>
+                        
+                        <controls:OutlinedTextBlock 
+                            Text="{Binding Points}"
+                            TextFontFamily="{Binding PointsFontFamily}"
+                            TextFontSize="{Binding PointsFontSize}"
+                            TextFontWeight="Bold"
+                            TextColor="{Binding PointsColor}"
+                            StrokeColor="{Binding PointsStrokeColor}"
+                            StrokeThickness="{Binding PointsStrokeSize}"
+                            StrokeEnabled="{Binding PointsStrokeEnabled}"
+                            VerticalTextAlignment="Bottom"/>
+                    </Grid>
+                    
+                    <!-- Description -->
+                    <Grid x:Name="DescriptionContainer" Grid.Column="1" Opacity="0"
+                          Visibility="{Binding ShowDescription, Converter={StaticResource BoolToVis}}"
+                          RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <TranslateTransform x:Name="DescriptionTransform"/>
+                        </Grid.RenderTransform>
+                        
+                        <controls:OutlinedTextBlock 
+                            Text="{Binding Description}"
+                            TextFontFamily="{Binding DescriptionFontFamily}"
+                            TextFontSize="{Binding DescriptionFontSize}"
+                            TextFontWeight="Normal"
+                            TextColor="{Binding DescriptionColor}"
+                            StrokeColor="{Binding DescriptionStrokeColor}"
+                            StrokeThickness="{Binding DescriptionStrokeSize}"
+                            StrokeEnabled="{Binding DescriptionStrokeEnabled}"
+                            TextWrapping="Wrap"
+                            VerticalTextAlignment="Center"/>
+                    </Grid>
+                </Grid>
+                
+                <!-- Mastery Mode: Achievements + Points side by side -->
+                <Grid Grid.Row="2">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMasteryMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Mastery Points (left) -->
+                    <Grid Grid.Column="0" Opacity="{Binding ElementName=DescriptionContainer, Path=Opacity}"
+                          RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <TranslateTransform X="{Binding ElementName=DescriptionTransform, Path=X}"/>
+                        </Grid.RenderTransform>
+                        
+                        <controls:OutlinedTextBlock 
+                            Text="{Binding MasteryPoints}"
+                            TextFontFamily="{Binding DescriptionFontFamily}"
+                            TextFontSize="{Binding MasteryInfoFontSize}"
+                            TextFontWeight="Bold"
+                            TextColor="{Binding DescriptionColor}"
+                            StrokeColor="{Binding DescriptionStrokeColor}"
+                            StrokeThickness="{Binding DescriptionStrokeSize}"
+                            StrokeEnabled="{Binding DescriptionStrokeEnabled}"
+                            TextAlignment="Center"
+                            VerticalTextAlignment="Center"/>
+                    </Grid>
+                    
+                    <!-- Mastery Achievements (right) -->
+                    <Grid Grid.Column="1" Opacity="{Binding ElementName=DescriptionContainer, Path=Opacity}"
+                          RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <TranslateTransform X="{Binding ElementName=DescriptionTransform, Path=X}"/>
+                        </Grid.RenderTransform>
+                        
+                        <controls:OutlinedTextBlock 
+                            Text="{Binding MasteryAchievements}"
+                            TextFontFamily="{Binding DescriptionFontFamily}"
+                            TextFontSize="{Binding MasteryInfoFontSize}"
+                            TextFontWeight="Bold"
+                            TextColor="{Binding DescriptionColor}"
+                            StrokeColor="{Binding DescriptionStrokeColor}"
+                            StrokeThickness="{Binding DescriptionStrokeSize}"
+                            StrokeEnabled="{Binding DescriptionStrokeEnabled}"
+                            TextAlignment="Center"
+                            VerticalTextAlignment="Center"/>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+    </Grid>
+</Window>
+

@@ -1,0 +1,238 @@
+<Window x:Class="RATracker.WPF.Views.AlertsOverlay"
+xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+xmlns:controls="clr-namespace:RATracker.WPF.Controls"
+xmlns:converters="clr-namespace:RATracker.WPF.Converters"
+xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
+mc:Ignorable="d"
+        Title="Alerts Overlay"
+        Width="{Binding WindowWidth, Mode=TwoWay}"
+        Height="{Binding WindowHeight, Mode=TwoWay}"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip"
+        SizeChanged="Window_SizeChanged"
+        d:DataContext="{d:DesignInstance Type=vm:AlertsViewModel, IsDesignTimeCreatable=True}">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:StringToImageSourceConverter x:Key="StringToImageSource"/>
+        
+        <!-- Easing Functions -->
+        <CubicEase x:Key="EaseOut" EasingMode="EaseOut"/>
+        <BackEase x:Key="BackEaseOut" EasingMode="EaseOut" Amplitude="0.3"/>
+        <ElasticEase x:Key="ElasticEase" EasingMode="EaseOut" Oscillations="1" Springiness="5"/>
+    </Window.Resources>
+
+    <Canvas x:Name="OverlayCanvas" Background="Transparent">
+        <!-- Draggable positioning guide (visible only in Position Mode) -->
+        <Border x:Name="PositioningGuide"
+                Canvas.Left="0"
+                Canvas.Top="0"
+                Width="{Binding WindowWidth}"
+                Height="{Binding WindowHeight}"
+                Background="#01000000"
+                IsHitTestVisible="True"
+                Visibility="Collapsed">
+            <Grid>
+                <!-- Dashed border using Rectangle -->
+                <Rectangle Stroke="#40FF9500" 
+                           StrokeThickness="2"
+                           StrokeDashArray="4 2"
+                           RadiusX="5"
+                           RadiusY="5"
+                           Margin="5"/>
+                <!-- Label with instructions -->
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="Alerts Overlay" 
+                               FontSize="14" 
+                               Foreground="#80FF9500"
+                               HorizontalAlignment="Center"
+                               FontFamily="Segoe UI"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Text="(Press P to exit position mode)" 
+                               FontSize="10" 
+                               Foreground="#60FF9500"
+                               HorizontalAlignment="Center"
+                               FontFamily="Segoe UI"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Achievement Notification Container -->
+        <Border x:Name="AchievementContainer"
+                Canvas.Left="{Binding AchievementLeft}"
+                Canvas.Top="{Binding AchievementTop}"
+                Width="{Binding NotificationWidth}"
+                Background="{Binding BackgroundColor}"
+                CornerRadius="{Binding ContainerCornerRadiusValue}"
+                Opacity="0"
+                RenderTransformOrigin="0.5,0.5">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="AchievementTransform"/>
+            </Border.RenderTransform>
+            
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding BorderEnabled}" Value="True">
+                            <Setter Property="BorderThickness" Value="3"/>
+                            <Setter Property="BorderBrush" Value="{Binding BorderColor}"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="20" ShadowDepth="5" Opacity="0.7"/>
+            </Border.Effect>
+            
+            <Grid Margin="15">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Badge -->
+                <Border Grid.Column="0"
+                        CornerRadius="{Binding BadgeCornerRadiusValue}"
+                        ClipToBounds="True">
+                    <Image Source="{Binding BadgeUri, Converter={StaticResource StringToImageSource}}"
+                           Width="{Binding BadgeSize}"
+                           Height="{Binding BadgeSize}"
+                           Stretch="UniformToFill"/>
+                </Border>
+                
+                <!-- Content -->
+                <Grid Grid.Column="1" Margin="{Binding ContentSpacingMargin}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Title -->
+                    <controls:OutlinedTextBlock 
+                        Grid.Row="0"
+                        Text="{Binding Title}"
+                        TextFontFamily="{Binding TitleFontFamily}"
+                        TextFontSize="{Binding TitleFontSize}"
+                        TextFontWeight="Bold"
+                        TextColor="{Binding TitleColor}"
+                        StrokeColor="{Binding TitleStrokeColor}"
+                        StrokeThickness="{Binding TitleStrokeSize}"
+                        StrokeEnabled="{Binding TitleStrokeEnabled}"
+                        TextWrapping="NoWrap"/>
+                    
+                    <!-- Separator Line -->
+                    <Rectangle Grid.Row="1"
+                               Height="{Binding LineHeight}"
+                               Fill="{Binding LineColor}"
+                               RadiusX="2" RadiusY="2"
+                               Margin="0,8,0,8"/>
+                    
+                    <!-- Description + Points (Achievement Mode) -->
+                    <Grid Grid.Row="2">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMasteryNotification}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Points -->
+                        <controls:OutlinedTextBlock 
+                            Grid.Column="0"
+                            Text="{Binding Points}"
+                            TextFontFamily="{Binding PointsFontFamily}"
+                            TextFontSize="{Binding PointsFontSize}"
+                            TextFontWeight="Bold"
+                            TextColor="{Binding PointsColor}"
+                            StrokeColor="{Binding PointsStrokeColor}"
+                            StrokeThickness="{Binding PointsStrokeSize}"
+                            StrokeEnabled="{Binding PointsStrokeEnabled}"
+                            VerticalTextAlignment="Bottom"
+                            Margin="0,0,10,0"/>
+                        
+                        <!-- Description -->
+                        <controls:OutlinedTextBlock 
+                            Grid.Column="1"
+                            Text="{Binding Description}"
+                            TextFontFamily="{Binding DescriptionFontFamily}"
+                            TextFontSize="{Binding DescriptionFontSize}"
+                            TextFontWeight="Normal"
+                            TextColor="{Binding DescriptionColor}"
+                            StrokeColor="{Binding DescriptionStrokeColor}"
+                            StrokeThickness="{Binding DescriptionStrokeSize}"
+                            StrokeEnabled="{Binding DescriptionStrokeEnabled}"
+                            TextWrapping="Wrap"
+                            VerticalTextAlignment="Center"/>
+                    </Grid>
+                    
+                    <!-- Mastery Info (Mastery Mode) -->
+                    <Grid Grid.Row="2">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMasteryNotification}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Mastery Achievements -->
+                        <controls:OutlinedTextBlock 
+                            Grid.Column="0"
+                            Text="{Binding MasteryAchievements}"
+                            TextFontFamily="{Binding DescriptionFontFamily}"
+                            TextFontSize="{Binding MasteryInfoFontSize}"
+                            TextFontWeight="Bold"
+                            TextColor="{Binding DescriptionColor}"
+                            StrokeColor="{Binding DescriptionStrokeColor}"
+                            StrokeThickness="{Binding DescriptionStrokeSize}"
+                            StrokeEnabled="{Binding DescriptionStrokeEnabled}"
+                            TextAlignment="Center"
+                            VerticalTextAlignment="Center"/>
+                        
+                        <!-- Mastery Points -->
+                        <controls:OutlinedTextBlock 
+                            Grid.Column="1"
+                            Text="{Binding MasteryPoints}"
+                            TextFontFamily="{Binding DescriptionFontFamily}"
+                            TextFontSize="{Binding MasteryInfoFontSize}"
+                            TextFontWeight="Bold"
+                            TextColor="{Binding PointsColor}"
+                            StrokeColor="{Binding PointsStrokeColor}"
+                            StrokeThickness="{Binding PointsStrokeSize}"
+                            StrokeEnabled="{Binding PointsStrokeEnabled}"
+                            TextAlignment="Center"
+                            VerticalTextAlignment="Center"/>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+    </Canvas>
+</Window>

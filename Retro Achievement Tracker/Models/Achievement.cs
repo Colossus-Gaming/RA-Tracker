@@ -1,7 +1,6 @@
-﻿using Newtonsoft.Json;
-using System;
+using Newtonsoft.Json;
 
-namespace Retro_Achievement_Tracker.Models
+namespace RATracker.Models
 {
     [JsonConverter(typeof(AchievementConverter))]
     public partial class Achievement : IEquatable<Achievement>, IComparable<Achievement>, ICloneable

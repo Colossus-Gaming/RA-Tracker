@@ -1,6 +1,4 @@
-using System;
-
-namespace Retro_Achievement_Tracker.Models
+namespace RATracker.Models
 {
     /// <summary>
     /// Represents all user-configurable settings for the application.

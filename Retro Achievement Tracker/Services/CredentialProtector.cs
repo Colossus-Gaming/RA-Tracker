@@ -1,8 +1,7 @@
-using System;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Retro_Achievement_Tracker.Services
+namespace RATracker.Services
 {
     /// <summary>
     /// Provides secure encryption/decryption of sensitive data using Windows DPAPI.

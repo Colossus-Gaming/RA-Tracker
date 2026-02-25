@@ -1,102 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <OutputType>WinExe</OutputType>
-    <RootNamespace>Retro_Achievement_Tracker</RootNamespace>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
-    <CefSharpAnyCpuSupport>true</CefSharpAnyCpuSupport>
-    <PublishUrl>C:\RALayoutManager\</PublishUrl>
-    <Install>true</Install>
-    <InstallFrom>Disk</InstallFrom>
-    <UpdateEnabled>false</UpdateEnabled>
-    <UpdateMode>Foreground</UpdateMode>
-    <UpdateInterval>7</UpdateInterval>
-    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
-    <UpdatePeriodically>false</UpdatePeriodically>
-    <UpdateRequired>false</UpdateRequired>
-    <MapFileExtensions>false</MapFileExtensions>
-    <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>4</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <UseApplicationTrust>false</UseApplicationTrust>
-    <PublishWizardCompleted>true</PublishWizardCompleted>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
-    <UseWindowsForms>true</UseWindowsForms>
-    <UseWPF>true</UseWPF>
-    <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <SignAssembly>true</SignAssembly>
-    <SignManifests>true</SignManifests>
-    <ManifestCertificateThumbprint>8C2D8C5C2BE0371C53FCF00F6E361C641CAB1100</ManifestCertificateThumbprint>
-    <ManifestKeyFile />
-    <GenerateManifests>true</GenerateManifests>
-    <StartupObject>Retro_Achievement_Tracker.Program</StartupObject>
-    <ApplicationIcon>Resources\image.ico</ApplicationIcon>
-    <TargetZone>LocalIntranet</TargetZone>
-    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>none</DebugType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
-    <OutputPath>bin\x86\Debug\</OutputPath>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
-    <OutputPath>bin\x86\Release\</OutputPath>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <OutputPath>bin\x64\Debug\</OutputPath>
-    <Optimize>true</Optimize>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Update="System">
-      <Private>True</Private>
-    </Reference>
-    <Reference Update="System.Core">
-      <Private>True</Private>
-    </Reference>
-    <Reference Update="System.Numerics">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Web" />
-    <Reference Update="System.Xml.Linq">
-      <Private>True</Private>
-    </Reference>
-    <Reference Update="System.Data">
-      <Private>True</Private>
-    </Reference>
-    <Reference Update="System.Drawing">
-      <Private>True</Private>
-    </Reference>
-    <Reference Update="System.Xml">
-      <Private>True</Private>
-    </Reference>
-    <PackageReference Include="Autoupdater.NET.Official" Version="1.9.2" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.65" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2739.15" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="Microsoft.AspNetCore.SystemWebAdapters" Version="2.2.1" />
-    <PackageReference Include="CoreWCF.Primitives" Version="1.8.0" />
-    <PackageReference Include="CoreWCF.ConfigurationManager" Version="1.8.0" />
-    <PackageReference Include="CoreWCF.Http" Version="1.8.0" />
-    <PackageReference Include="CoreWCF.WebHttp" Version="1.8.0" />
-    <PackageReference Include="CoreWCF.NetTcp" Version="1.8.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
-      <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4.7.2 %28x86 and x64%29</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-  </ItemGroup>
+<PropertyGroup>
+<TargetFramework>net8.0-windows</TargetFramework>
+<OutputType>WinExe</OutputType>
+<AssemblyName>RATracker</AssemblyName>
+<RootNamespace>RATracker</RootNamespace>
+<UseWindowsForms>true</UseWindowsForms>
+<UseWPF>true</UseWPF>
+<ImplicitUsings>enable</ImplicitUsings>
+<StartupObject>RATracker.Program</StartupObject>
+  <ApplicationIcon>Resources\image.ico</ApplicationIcon>
+</PropertyGroup>
+<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <DebugType>none</DebugType>
+</PropertyGroup>
+<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+  <OutputPath>bin\x86\Debug\</OutputPath>
+</PropertyGroup>
+<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+  <OutputPath>bin\x86\Release\</OutputPath>
+</PropertyGroup>
+<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+  <OutputPath>bin\x64\Debug\</OutputPath>
+</PropertyGroup>
+<ItemGroup>
+  <PackageReference Include="Autoupdater.NET.Official" Version="1.9.2" />
+  <PackageReference Include="HtmlAgilityPack" Version="1.11.65" />
+  <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2739.15" />
+  <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  <PackageReference Include="Microsoft.AspNetCore.SystemWebAdapters" Version="2.2.1" />
+  <PackageReference Include="CoreWCF.Primitives" Version="1.8.0" />
+  <PackageReference Include="CoreWCF.ConfigurationManager" Version="1.8.0" />
+  <PackageReference Include="CoreWCF.Http" Version="1.8.0" />
+  <PackageReference Include="CoreWCF.WebHttp" Version="1.8.0" />
+  <PackageReference Include="CoreWCF.NetTcp" Version="1.8.0" />
+</ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\game-info-window.html" />
     <Resource Include="Resources\recent-achievements-window.html" />

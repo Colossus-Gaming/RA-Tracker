@@ -1,6 +1,6 @@
-﻿using System.Windows.Forms;
+using System.Windows.Forms;
 
-namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     partial class MainWindow
     {
@@ -1125,7 +1125,7 @@ namespace Retro_Achievement_Tracker
             // autoPollingStatusPictureBox
             // 
             this.autoPollingStatusPictureBox.BackColor = System.Drawing.Color.Transparent;
-            this.autoPollingStatusPictureBox.Image = global::Retro_Achievement_Tracker.Properties.Resources.red_button;
+            this.autoPollingStatusPictureBox.Image = global::RATracker.Properties.Resources.red_button;
             this.autoPollingStatusPictureBox.Location = new System.Drawing.Point(6, 14);
             this.autoPollingStatusPictureBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.autoPollingStatusPictureBox.Name = "autoPollingStatusPictureBox";
@@ -5946,7 +5946,7 @@ namespace Retro_Achievement_Tracker
             // 
             // gameProgressMasteryPictureBox
             // 
-            this.gameProgressMasteryPictureBox.Image = global::Retro_Achievement_Tracker.Properties.Resources.mastered_icon;
+            this.gameProgressMasteryPictureBox.Image = global::RATracker.Properties.Resources.mastered_icon;
             this.gameProgressMasteryPictureBox.Location = new System.Drawing.Point(656, 208);
             this.gameProgressMasteryPictureBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.gameProgressMasteryPictureBox.Name = "gameProgressMasteryPictureBox";
@@ -5958,7 +5958,7 @@ namespace Retro_Achievement_Tracker
             // pictureBox21
             // 
             this.pictureBox21.BackColor = System.Drawing.Color.Transparent;
-            this.pictureBox21.Image = global::Retro_Achievement_Tracker.Properties.Resources.progression_meter;
+            this.pictureBox21.Image = global::RATracker.Properties.Resources.progression_meter;
             this.pictureBox21.Location = new System.Drawing.Point(375, 200);
             this.pictureBox21.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.pictureBox21.Name = "pictureBox21";

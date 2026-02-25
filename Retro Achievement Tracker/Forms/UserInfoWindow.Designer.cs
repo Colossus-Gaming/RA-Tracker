@@ -1,4 +1,4 @@
-﻿namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     partial class UserInfoWindow
     {

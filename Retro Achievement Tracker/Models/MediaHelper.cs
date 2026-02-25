@@ -1,8 +1,6 @@
-﻿using System;
-using System.Drawing;
 using System.IO;
 
-namespace Retro_Achievement_Tracker.Models
+namespace RATracker.Models
 {
     class MediaHelper
     {

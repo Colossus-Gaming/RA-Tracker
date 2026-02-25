@@ -1,14 +1,9 @@
-﻿using Newtonsoft.Json;
-using Retro_Achievement_Tracker.Controllers;
-using Retro_Achievement_Tracker.Models;
-using Retro_Achievement_Tracker.Properties;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+using Newtonsoft.Json;
+using RATracker.Controllers;
+using RATracker.Models;
+using RATracker.Properties;
 
-namespace Retro_Achievement_Tracker.Forms
+namespace RATracker.Forms
 {
     public partial class AchievementListWindow : Form
     {

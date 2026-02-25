@@ -1,4 +1,4 @@
-﻿namespace Retro_Achievement_Tracker.Models
+namespace RATracker.Models
 {
     public class Constants
     {

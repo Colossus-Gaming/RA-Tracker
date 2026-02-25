@@ -1,15 +1,10 @@
-using Retro_Achievement_Tracker.Controllers;
-using Retro_Achievement_Tracker.Models;
-using Retro_Achievement_Tracker.Properties;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
+using RATracker.Controllers;
+using RATracker.Models;
+using RATracker.Properties;
 using System.Globalization;
-using System.Linq;
-using System.Windows.Forms;
 using FontFamily = System.Drawing.FontFamily;
 
-namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     /// <summary>
     /// Partial class containing Settings and UI configuration functionality.

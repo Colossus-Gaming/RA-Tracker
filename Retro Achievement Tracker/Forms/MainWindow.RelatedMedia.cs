@@ -1,11 +1,9 @@
-using Retro_Achievement_Tracker.Controllers;
-using Retro_Achievement_Tracker.Properties;
-using System;
-using System.Collections.Generic;
+using RATracker.Controllers;
+using RATracker.Properties;
 using System.IO;
 using System.Xml;
 
-namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     /// <summary>
     /// Partial class containing Related Media and LaunchBox integration functionality.

@@ -13,7 +13,7 @@
    - Avoid `run_command_in_terminal` for tasks that can be accomplished with file operations
 
 2. **DO NOT use Python scripts** for file manipulation or code generation
-   - This is a .NET Framework 4.7.2 Windows Forms project
+   - This workspace contains both a .NET Framework 4.7.2 Windows Forms project (legacy) and a .NET 8 WPF project (new)
    - All tooling should stay within the C# / .NET ecosystem
 
 3. **Prefer built-in tools over external commands:**
@@ -29,6 +29,117 @@
    - Running the application for testing
 
 5. **Follow the existing code patterns** documented in this file rather than introducing new paradigms
+
+---
+
+## WPF Migration Status (.NET 8)
+
+> **IMPORTANT: Active Migration in Progress**
+
+The project is being migrated from Windows Forms (.NET Framework 4.7.2) to WPF (.NET 8). The WPF version is in `Retro Achievement Tracker.WPF/`.
+
+### Migration Progress
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1-6 | Core infrastructure, models, services, API clients | ✅ Complete |
+| 7 | StreamLabelService with multi-set support | ✅ Complete |
+| 8 | Stream Labels UI in Settings tab | ✅ Complete |
+| 9 | Overlay Windows wiring & auto-launch | ✅ Complete |
+
+### Implemented Overlays (WPF)
+
+| Overlay | View | ViewModel | Auto-Launch |
+|---------|------|-----------|-------------|
+| Focus | `FocusOverlay.xaml` | `FocusViewModel.cs` | ✅ |
+| Alerts | `AlertsOverlay.xaml` | `AlertsViewModel.cs` | ✅ |
+| User Info | `UserInfoOverlay.xaml` | `UserInfoViewModel.cs` | ✅ |
+| Game Info | `GameInfoOverlay.xaml` | `GameInfoViewModel.cs` | ✅ |
+| Game Progress | `GameProgressOverlay.xaml` | `GameProgressViewModel.cs` | ✅ |
+| Recent Unlocks | `RecentUnlocksOverlay.xaml` | `RecentUnlocksViewModel.cs` | ✅ |
+| Related Media | `RelatedMediaOverlay.xaml` | `RelatedMediaViewModel.cs` | ✅ |
+| Achievement List | `AchievementListOverlay.xaml` | `AchievementListViewModel.cs` | ✅ |
+
+### WPF Project Structure
+
+```
+Retro Achievement Tracker.WPF/
+├── Controls/            # Custom WPF controls (OutlinedTextBlock)
+├── Converters/          # Value converters for XAML bindings
+├── Http/V2/             # V2 API client, JSON:API parser, query builder
+│   ├── JsonApi/         # JSON:API document parsing
+│   └── Mappers/         # V2 resource to model mappers
+├── Models/              # AppSettings, AchievementSet, GameInfo, UserSummary
+├── Services/            # Service layer for API, settings, stream labels
+│   ├── AchievementTrackingService.cs  # Polling and unlock detection
+│   ├── HybridProgressService.cs       # V1/V2 hybrid with fallback
+│   ├── IProgressService.cs            # Progress abstraction interface
+│   ├── ServiceFactory.cs              # Creates services based on feature flags
+│   ├── SettingsService.cs             # JSON settings persistence
+│   └── StreamLabelService.cs          # OBS text file generation
+├── ViewModels/          # MVVM ViewModels for all views
+├── Views/               # Overlay window XAML files
+├── MainWindow.xaml      # Main control panel
+└── App.xaml             # Application resources and startup
+```
+
+### Key WPF Differences from WinForms
+
+| Feature | WinForms (Legacy) | WPF (New) |
+|---------|-------------------|-----------|
+| Overlay Rendering | WebView2 + HTML/CSS/JS | Native XAML + WPF animations |
+| State Management | Singleton Controllers | MVVM with ViewModels |
+| Settings | `Properties.Settings.Default` | JSON-based `SettingsService` |
+| Data Binding | Manual event handlers | XAML bindings + INotifyPropertyChanged |
+| Animations | JavaScript animations | WPF Storyboards |
+
+### Working with WPF Code
+
+When modifying the WPF project:
+
+1. **ViewModels**: Extend `ViewModelBase` for property change notifications
+2. **Commands**: Use `RelayCommand` for ICommand implementations
+3. **Overlays**: Follow the pattern in `FocusOverlay.xaml`/`.cs` for new overlays
+4. **Settings**: Add new settings to `AppSettings.cs` and `SettingsService.cs`
+5. **Styles**: Use the color resources defined in `MainWindow.xaml` (BackgroundDark, AccentBlue, etc.)
+
+### WPF Services Layer
+
+The WPF project uses a robust services architecture:
+
+#### Service Factory (`ServiceFactory.cs`)
+Creates service instances based on feature flags:
+- `GetMetadataService()` - V2 metadata operations (systems, games, users)
+- `GetProgressService()` - V1/V2 hybrid progress operations
+- `GetTrackingService()` - Polling and unlock detection
+
+#### Feature Flags (`IFeatureFlagService.cs`)
+Controls API version selection at runtime:
+```csharp
+public interface IFeatureFlagService
+{
+    bool UseV2ForMetadata { get; }     // Default: true
+    bool UseV2ForProgress { get; }     // Default: true  
+    bool UseV2ForUserLookup { get; }   // Default: true
+    bool EnableMultiSet { get; }       // Default: true
+    bool EnableV1Fallback { get; }     // Default: true
+    bool EnableApiLogging { get; }     // Default: false
+}
+```
+
+#### Progress Service (`IProgressService.cs`)
+Abstraction for fetching user progress:
+- `GetUserGameProgressAsync()` - Game progress with unlock status
+- `GetUserRecentAchievementsAsync()` - Recently unlocked achievements
+- `GetUserRecentlyPlayedGamesAsync()` - Recently played games
+- `DetectNewUnlocks()` - Compare states to find new unlocks
+- `GetUserSummaryAsync()` - User rank and points
+
+#### Hybrid Progress Service (`HybridProgressService.cs`)
+Implements `IProgressService` with automatic V1 fallback:
+- Attempts V2 API first when `UseV2ForProgress` is true
+- Falls back to V1 API on failure when `EnableV1Fallback` is true
+- Includes logging and observability
 
 ---
 

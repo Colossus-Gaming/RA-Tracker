@@ -1,12 +1,8 @@
-﻿using Microsoft.Web.WebView2.Core;
-using Retro_Achievement_Tracker.Controllers;
-using Retro_Achievement_Tracker.Properties;
-using System;
-using System.Drawing;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+using Microsoft.Web.WebView2.Core;
+using RATracker.Controllers;
+using RATracker.Properties;
 
-namespace Retro_Achievement_Tracker.Forms
+namespace RATracker.Forms
 {
     public partial class RelatedMediaWindow : Form
     {

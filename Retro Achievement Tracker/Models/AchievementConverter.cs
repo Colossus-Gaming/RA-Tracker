@@ -1,9 +1,8 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
 using System.Reflection;
 
-namespace Retro_Achievement_Tracker.Models
+namespace RATracker.Models
 {
     class AchievementConverter : JsonConverter
     {

@@ -1,0 +1,188 @@
+<Window x:Class="RATracker.WPF.Views.RecentUnlocksOverlay"
+xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+xmlns:controls="clr-namespace:RATracker.WPF.Controls"
+xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
+xmlns:views="clr-namespace:RATracker.WPF.Views"
+mc:Ignorable="d"
+Title="Recent Unlocks Overlay"
+        Width="{Binding WindowWidth, Mode=TwoWay}"
+        Height="{Binding WindowHeight, Mode=TwoWay}"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip"
+        SizeChanged="Window_SizeChanged"
+        d:DataContext="{d:DesignInstance Type=vm:RecentUnlocksViewModel, IsDesignTimeCreatable=True}">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        
+        <!-- Date Converter (multi-value for timezone support) -->
+        <views:DateEarnedConverter x:Key="DateEarnedConverter"/>
+        
+        <!-- Easing Functions -->
+        <CubicEase x:Key="EaseOut" EasingMode="EaseOut"/>
+        
+        <!-- Show Animation -->
+        <Storyboard x:Key="ShowAnimation">
+            <DoubleAnimation 
+                Storyboard.TargetName="MainContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1" Duration="0:0:0.4"
+                EasingFunction="{StaticResource EaseOut}"/>
+        </Storyboard>
+        
+        <!-- Hide Animation -->
+        <Storyboard x:Key="HideAnimation">
+            <DoubleAnimation 
+                Storyboard.TargetName="MainContainer"
+                Storyboard.TargetProperty="Opacity"
+                From="1" To="0" Duration="0:0:0.3"
+                EasingFunction="{StaticResource EaseOut}"/>
+        </Storyboard>
+    </Window.Resources>
+
+    <Grid>
+        <!-- Draggable positioning guide (visible when content is hidden) -->
+        <Border x:Name="PositioningGuide" Background="Transparent">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=MainContainer, Path=Opacity}" Value="1">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Rectangle Stroke="#40FFD700" 
+                           StrokeThickness="2"
+                           StrokeDashArray="4 2"
+                           RadiusX="5"
+                           RadiusY="5"
+                           Margin="5"/>
+                <TextBlock Text="Recent Unlocks Overlay" 
+                           FontSize="14" 
+                           Foreground="#80FFD700"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontFamily="Segoe UI"
+                           FontWeight="SemiBold"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Container -->
+        <Border x:Name="MainContainer"
+            Background="{Binding BackgroundColor}"
+            CornerRadius="{Binding ContainerCornerRadiusValue}"
+            Margin="{Binding ContainerMarginValue}"
+            Opacity="0">
+        
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="BorderThickness" Value="0"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding BorderEnabled}" Value="True">
+                        <Setter Property="BorderThickness" Value="3"/>
+                        <Setter Property="BorderBrush" Value="{Binding BorderColor}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="15" ShadowDepth="3" Opacity="0.6"/>
+        </Border.Effect>
+        
+        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled"
+                      Margin="10">
+            <ItemsControl ItemsSource="{Binding Achievements}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="{Binding DataContext.ItemSpacingValue, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Badge -->
+                                <Border Grid.Column="0"
+                                        CornerRadius="{Binding DataContext.BadgeCornerRadiusValue, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        ClipToBounds="True"
+                                        Margin="0,0,10,0">
+                                    <Image Source="{Binding BadgeUri}"
+                                           Width="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Height="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Stretch="UniformToFill"/>
+                                </Border>
+                                
+                                <!-- Content -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <!-- Title -->
+                                    <controls:OutlinedTextBlock 
+                                        Text="{Binding Title}"
+                                        TextFontFamily="{Binding DataContext.TitleFontFamily, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        TextFontSize="{Binding DataContext.TitleFontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        TextFontWeight="Bold"
+                                        TextColor="{Binding DataContext.TitleColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        StrokeColor="{Binding DataContext.TitleStrokeColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        StrokeThickness="{Binding DataContext.TitleStrokeSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        StrokeEnabled="{Binding DataContext.TitleStrokeEnabled, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        TextWrapping="NoWrap"/>
+                                    
+                                    <!-- Date -->
+                                    <controls:OutlinedTextBlock 
+                                        TextFontFamily="{Binding DataContext.DateFontFamily, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        TextFontSize="{Binding DataContext.DateFontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        TextFontWeight="Normal"
+                                        TextColor="{Binding DataContext.DateColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        StrokeColor="{Binding DataContext.DateStrokeColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        StrokeThickness="{Binding DataContext.DateStrokeSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        StrokeEnabled="{Binding DataContext.DateStrokeEnabled, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        Margin="0,2,0,0">
+                                        <controls:OutlinedTextBlock.Text>
+                                            <MultiBinding Converter="{StaticResource DateEarnedConverter}">
+                                                <Binding Path="DateEarned"/>
+                                                <Binding Path="DataContext.Timezone" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                            </MultiBinding>
+                                        </controls:OutlinedTextBlock.Text>
+                                    </controls:OutlinedTextBlock>
+                                </StackPanel>
+                                
+                                <!-- Points -->
+                                <controls:OutlinedTextBlock 
+                                    Grid.Column="2"
+                                    Text="{Binding Points}"
+                                    TextFontFamily="{Binding DataContext.PointsFontFamily, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    TextFontSize="{Binding DataContext.PointsFontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    TextFontWeight="Bold"
+                                    TextColor="{Binding DataContext.PointsColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    StrokeColor="{Binding DataContext.PointsStrokeColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    StrokeThickness="{Binding DataContext.PointsStrokeSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    StrokeEnabled="{Binding DataContext.PointsStrokeEnabled, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    VerticalTextAlignment="Center"
+                                    Margin="10,0,0,0"/>
+                            </Grid>
+                            
+                            <!-- Separator Line -->
+                            <Rectangle Height="{Binding DataContext.LineHeight, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Fill="{Binding DataContext.LineColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Margin="0,8,0,0"
+                                       RadiusX="1" RadiusY="1"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Border>
+    </Grid>
+</Window>

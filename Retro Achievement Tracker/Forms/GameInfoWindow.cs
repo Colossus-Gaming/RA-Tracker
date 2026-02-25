@@ -1,11 +1,7 @@
-﻿using Retro_Achievement_Tracker.Controllers;
-using Retro_Achievement_Tracker.Properties;
-using System;
-using System.Drawing;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+using RATracker.Controllers;
+using RATracker.Properties;
 
-namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     public partial class GameInfoWindow : Form
     {

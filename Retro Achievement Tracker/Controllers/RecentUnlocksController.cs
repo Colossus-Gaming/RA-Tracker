@@ -1,12 +1,7 @@
-﻿using Retro_Achievement_Tracker.Models;
-using Retro_Achievement_Tracker.Properties;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Threading.Tasks;
+using RATracker.Models;
+using RATracker.Properties;
 
-namespace Retro_Achievement_Tracker.Controllers
+namespace RATracker.Controllers
 {
     public sealed class RecentUnlocksController
     {

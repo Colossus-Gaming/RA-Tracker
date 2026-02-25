@@ -1,7 +1,7 @@
-﻿namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     using Newtonsoft.Json;
-    using Retro_Achievement_Tracker.Models;
+    using RATracker.Models;
     using System;
     using System.Collections.Generic;
 
@@ -21,6 +21,7 @@
         {
             get
             {
+                if (TotalPoints == 0) return "0.00";
                 return ((float)TotalTruePoints / TotalPoints).ToString("0.00");
             }
         }

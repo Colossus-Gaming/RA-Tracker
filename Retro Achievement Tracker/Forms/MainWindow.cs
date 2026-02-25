@@ -1,21 +1,13 @@
 using AutoUpdaterDotNET;
-using Retro_Achievement_Tracker.Controllers;
-using Retro_Achievement_Tracker.Models;
-using Retro_Achievement_Tracker.Properties;
-using Retro_Achievement_Tracker.Services;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
+using RATracker.Controllers;
+using RATracker.Models;
+using RATracker.Properties;
+using RATracker.Services;
 using System.IO;
-using System.Linq;
-using System.Windows.Forms;
-using System.Xml;
-using FontFamily = System.Drawing.FontFamily;
 using File = System.IO.File;
-using System.Globalization;
 using Newtonsoft.Json;
 
-namespace Retro_Achievement_Tracker
+namespace RATracker
 {
     public partial class MainWindow : Form
     {

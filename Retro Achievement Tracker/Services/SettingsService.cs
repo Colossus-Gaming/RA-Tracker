@@ -1,10 +1,9 @@
 using Newtonsoft.Json;
-using Retro_Achievement_Tracker.Models;
-using Retro_Achievement_Tracker.Properties;
-using System;
+using RATracker.Models;
+using RATracker.Properties;
 using System.IO;
 
-namespace Retro_Achievement_Tracker.Services
+namespace RATracker.Services
 {
     /// <summary>
     /// Manages loading, saving, and migrating user settings.
