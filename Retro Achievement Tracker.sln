@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36915.13
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Retro Achievement Tracker", "Retro Achievement Tracker\Retro Achievement Tracker.csproj", "{B653334B-218F-472E-A788-1B290926180A}"
-EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Installer", "Installer\Installer.vdproj", "{B31D573F-84EB-4DFD-A23E-22B8C60D51C3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Retro Achievement Tracker.Tests", "Retro Achievement Tracker.Tests\Retro Achievement Tracker.Tests.csproj", "{36407A3B-DE2D-482E-8617-27AF5E3C8374}"
@@ -37,26 +35,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B653334B-218F-472E-A788-1B290926180A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Debug|ARM.ActiveCfg = Debug|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Debug|ARM.Build.0 = Debug|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Debug|ARM64.ActiveCfg = Debug|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Debug|ARM64.Build.0 = Debug|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Debug|x64.Build.0 = Debug|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Debug|x86.Build.0 = Debug|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Release|Any CPU.ActiveCfg = Debug|x86
-		{B653334B-218F-472E-A788-1B290926180A}.Release|Any CPU.Build.0 = Debug|x86
-		{B653334B-218F-472E-A788-1B290926180A}.Release|ARM.ActiveCfg = Release|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Release|ARM.Build.0 = Release|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Release|ARM64.ActiveCfg = Release|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Release|ARM64.Build.0 = Release|Any CPU
-		{B653334B-218F-472E-A788-1B290926180A}.Release|x64.ActiveCfg = Release|x64
-		{B653334B-218F-472E-A788-1B290926180A}.Release|x64.Build.0 = Release|x64
-		{B653334B-218F-472E-A788-1B290926180A}.Release|x86.ActiveCfg = Debug|x86
-		{B653334B-218F-472E-A788-1B290926180A}.Release|x86.Build.0 = Debug|x86
 		{B31D573F-84EB-4DFD-A23E-22B8C60D51C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B31D573F-84EB-4DFD-A23E-22B8C60D51C3}.Debug|ARM.ActiveCfg = Debug|ARM
 		{B31D573F-84EB-4DFD-A23E-22B8C60D51C3}.Debug|ARM64.ActiveCfg = Debug|ARM64
