@@ -1,8 +1,9 @@
-# WinForms to WPF Migration Plan
+# WinForms to WPF Migration Plan (Historical)
 
 ## Retro Achievement Tracker - Native Animation Migration
 
-This document outlines the step-by-step migration from WinForms + WebView2 to WPF with native XAML animations.
+This is the original planning document for the WinForms + WebView2 to WPF migration.
+The repository now runs on the WPF implementation, so this file is retained for historical context.
 
 ---
 
