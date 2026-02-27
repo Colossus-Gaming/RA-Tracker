@@ -10,19 +10,19 @@ Add the ability to have **different notification settings** for achievements fro
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| `AchievementSet.cs` | ? Exists | Has `AchievementSetType` enum (Core, Bonus, Specialty, Exclusive) |
-| `Achievement.cs` | ?? Needs Update | Missing `SetType` property to track which set an achievement belongs to |
-| `AlertsViewModel.cs` | ?? Needs Update | Has Achievement/Mastery settings, needs Sub-Set settings |
-| `AlertsOverlay.xaml/.cs` | ?? Needs Update | Needs to detect set type and apply different settings |
-| `MainViewModel.cs` | ?? Needs Update | Needs to pass set type info with notifications |
-| `AppSettings.cs` | ?? Needs Update | Needs persistence for sub-set notification settings |
-| `MainWindow.xaml` | ?? Needs Update | Needs UI for configuring sub-set notifications |
+| `AchievementSet.cs` | Exists | Has `AchievementSetType` enum (Core, Bonus, Specialty, Exclusive) |
+| `Achievement.cs` | Needs Update | Missing `SetType` property to track which set an achievement belongs to |
+| `AlertsViewModel.cs` | Needs Update | Has Achievement/Mastery settings, needs Sub-Set settings |
+| `AlertsOverlay.xaml/.cs` | Needs Update | Needs to detect set type and apply different settings |
+| `MainViewModel.cs` | Needs Update | Needs to pass set type info with notifications |
+| `AppSettings.cs` | Needs Update | Needs persistence for sub-set notification settings |
+| `MainWindow.xaml` | Needs Update | Needs UI for configuring sub-set notifications |
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Extend Achievement Model ?? START HERE
+### Phase 1: Extend Achievement Model (Start Here)
 **Files:** `Retro Achievement Tracker.WPF/Models/Achievement.cs`
 
 **Changes:**
@@ -417,3 +417,4 @@ Update `Retro Achievement Tracker.WPF/MainWindow.xaml` to add UI for sub-set not
 5. Add custom video file picker with browse button
 6. Add "Test Sub-Set Alert" button
 ```
+

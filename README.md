@@ -40,7 +40,5 @@ dotnet run --project "Retro Achievement Tracker.WPF/Retro Achievement Tracker.WP
 
 ## Documentation
 
-- Main docs index: [docs/README.md](docs/README.md)
-- API integration guide: [docs/guides/api-integration.md](docs/guides/api-integration.md)
+- API docs and guides: [docs/README.md](docs/README.md)
 - Active implementation plan: [docs/plans/subset-notifications-plan.md](docs/plans/subset-notifications-plan.md)
-- Historical migration plan: [docs/plans/wpf-migration-plan.md](docs/plans/wpf-migration-plan.md)

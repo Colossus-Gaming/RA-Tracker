@@ -1,0 +1,154 @@
+# Achievement of the Week
+
+A call to this endpoint will retrieve comprehensive metadata about the current Achievement of the Week.
+
+\[\[toc]]
+
+## On-site Representation
+
+The current Achievement of the Week can be found on the site's home page:
+
+![AOTW](/aotw.png)
+
+## HTTP Request
+
+https://retroachievements.org/API/API\_GetAchievementOfTheWeek.php
+
+### Query Parameters
+
+| Name | Required? | Description       |
+| :--- | :-------- | :---------------- |
+| `y`  | Yes       | Your web API key. |
+
+## Client Library
+
+::: code-group
+
+```ts [NodeJS]
+import {
+  buildAuthorization,
+  getAchievementOfTheWeek,
+} from "@retroachievements/api";
+
+// First, build your authorization object.
+const username = "<your username on RA>";
+const webApiKey = "<your web API key>";
+
+const authorization = buildAuthorization({ username, webApiKey });
+
+// Then, make the API call.
+const achievementOfTheWeek = await getAchievementOfTheWeek(authorization);
+```
+
+```kotlin [Kotlin]
+val credentials = RetroCredentials("<username>", "<web api key>")
+val api: RetroInterface = RetroClient(credentials).api
+
+val response: NetworkResponse<GetAchievementOfTheWeek.Response, ErrorResponse> = api.getAchievementOfTheWeek()
+
+if (response is NetworkResponse.Success) {
+    // handle the data
+    val achievementOfTheWeek: GetAchievementOfTheWeek.Response = response.body
+
+} else if (response is NetworkResponse.Error) {
+    // if the server returns an error it be found here
+    val errorResponse: ErrorResponse? = response.body
+
+    // if the api (locally) had an internal error, it'll be found here
+    val internalError: Throwable? = response.error
+}
+```
+
+:::
+
+## Response
+
+::: code-group
+
+```json [HTTP Response]
+{
+  "Achievement": {
+    "ID": 178634,
+    "Title": "Saved Summer",
+    "Description": "Defeat the Flower and let Summer Get Busy",
+    "Points": 10,
+    "TrueRatio": 11,
+    "Type": null,
+    "Author": "StingX2",
+    "AuthorULID": "00003EMFWR7XB8SDPEHB3K56ZQ",
+    "DateCreated": "2021-10-16",
+    "DateModified": "2021-10-17"
+  },
+  "Console": {
+    "ID": 3,
+    "Title": "SNES"
+  },
+  "ForumTopic": {
+    "ID": 19685
+  },
+  "Game": {
+    "ID": 2865,
+    "Title": "~Hack~ Plumber For All Seasons, A"
+  },
+  "StartAt": "2023-10-23T00:00:00.000000Z",
+  "TotalPlayers": 427,
+  "Unlocks": [
+    {
+      "User": "Agnam",
+      "ULID": "00003EMFWR7XB8SDPEHB3K56ZQ",
+      "RAPoints": 56120,
+      "RASoftcorePoints": 1267,
+      "DateAwarded": "2023-10-26T22:13:34.000000Z",
+      "HardcoreMode": 1
+    }
+    // ...
+  ],
+  "UnlocksCount": 280,
+  "UnlocksHardcoreCount": 268
+}
+```
+
+```json [NodeJS]
+{
+  "achievement": {
+    "id": "165062",
+    "title": "The True Hero",
+    "description": "Receive any Ending as Han [Normal or Hard]",
+    "points": "10",
+    "trueRatio": "22",
+    "author": "BigWeedSmokerMan",
+    "authorUlid": "00003EMFWR7XB8SDPEHB3K56ZQ",
+    "dateCreated": "2021-08-08 17:47:46",
+    "dateModified": "2021-08-09 12:20:05"
+  },
+  "console": { "id": "39", "title": "Saturn" },
+  "forumTopic": { "id": "14767" },
+  "game": { "id": "14513", "title": "Guardian Heroes" },
+  "startAt": "2022-10-10 00:00:00",
+  "totalPlayers": "219",
+  "unlocks": [
+    {
+      "user": "Tirbaba2",
+      "ulid": "00003EMFWR7XB8SDPEHB3K56ZQ",
+      "rAPoints": "72",
+      "rASoftcorePoints": "150",
+      "dateAwarded": "2022-10-10 01:42:19",
+      "hardcoreMode": "1"
+    }
+    // ...
+  ],
+  "unlocksCount": "40"
+}
+```
+
+:::
+
+## Source
+
+| Repo       | URL                                                                                                                  |
+| :--------- | :------------------------------------------------------------------------------------------------------------------- |
+| RAWeb      | https://github.com/RetroAchievements/RAWeb/blob/master/public/API/API\_GetAchievementOfTheWeek.php                    |
+| api-js     | https://github.com/RetroAchievements/api-js/blob/main/src/feed/getAchievementOfTheWeek.ts                            |
+| api-kotlin | https://github.com/RetroAchievements/api-kotlin/blob/main/src/main/kotlin/org/retroachivements/api/RetroInterface.kt |
+
+---
