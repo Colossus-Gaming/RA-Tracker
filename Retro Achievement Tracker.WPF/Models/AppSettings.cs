@@ -19,6 +19,17 @@ public class AppSettings
     /// </summary>
     public string EncryptedApiKey { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the encrypted password for session-based login.
+    /// Encrypted with DPAPI, same as API key.
+    /// </summary>
+    public string EncryptedPassword { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets whether to remember the password between sessions.
+    /// </summary>
+    public bool RememberPassword { get; set; }
+
     #region Auto-Start and Auto-Launch Settings
 
     /// <summary>

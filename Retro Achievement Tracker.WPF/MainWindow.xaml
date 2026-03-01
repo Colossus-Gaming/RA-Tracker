@@ -5,6 +5,7 @@ xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
 xmlns:converters="clr-namespace:RATracker.WPF.Converters"
+xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
 mc:Ignorable="d"
 Title="Retro Achievement Tracker" 
 Height="700" Width="900"
@@ -117,6 +118,7 @@ Height="700" Width="900"
             <Setter Property="Padding" Value="6,4"/>
             <Setter Property="MinWidth" Value="30"/>
             <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
             <Setter Property="ToolTip" Value="Settings"/>
         </Style>
         
@@ -326,35 +328,39 @@ Height="700" Width="900"
                 </Grid.ColumnDefinitions>
 
                 <!-- Credentials -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <StackPanel Margin="0,0,15,0">
-                        <TextBlock Text="Username" FontSize="12" Foreground="{StaticResource TextMuted}"/>
-                        <TextBox x:Name="UsernameTextBox" 
-                                 Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" 
-                                 Width="180"
-                                 IsEnabled="{Binding IsNotPolling}"/>
-                    </StackPanel>
-
-                    <StackPanel Margin="0,0,15,0">
-                        <TextBlock Text="Web API Key" FontSize="12" Foreground="{StaticResource TextMuted}"/>
-                        <PasswordBox x:Name="ApiKeyBox" 
-                                     Width="250"
-                                     IsEnabled="{Binding IsNotPolling}"
-                                     PasswordChanged="ApiKeyBox_PasswordChanged"/>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,0,3">
-                        <Button Command="{Binding TogglePollingCommand}" Width="90">
+                <StackPanel Grid.Column="0">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Margin="0,0,10,0">
+                            <TextBlock Text="Username" FontSize="12" Foreground="{StaticResource TextMuted}"/>
+                            <TextBox x:Name="UsernameTextBox"
+                                     AutomationProperties.AutomationId="UsernameTextBox"
+                                     Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="160"
+                                     IsEnabled="{Binding IsNotPolling}"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,8,0">
+                            <TextBlock Text="Password" FontSize="12" Foreground="{StaticResource TextMuted}"/>
+                            <PasswordBox x:Name="PasswordBox"
+                                         AutomationProperties.AutomationId="PasswordBox"
+                                         Width="180"
+                                         IsEnabled="{Binding IsNotPolling}"
+                                         PasswordChanged="PasswordBox_PasswordChanged"/>
+                        </StackPanel>
+                        <CheckBox Content="Remember" IsChecked="{Binding RememberPassword}"
+                                  Foreground="{StaticResource TextMuted}" FontSize="11"
+                                  Margin="0,0,8,0" VerticalAlignment="Bottom" Padding="2,0,0,6"
+                                  IsEnabled="{Binding IsNotPolling}"/>
+                        <Button AutomationProperties.AutomationId="StartStopButton" Command="{Binding TogglePollingCommand}" Width="90" VerticalAlignment="Bottom">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource ModernButton}">
-                                    <Setter Property="Content" Value="? Start"/>
+                                    <Setter Property="Content" Value="&#x25B6; Start"/>
                                     <Setter Property="Background" Value="#2D7D46"/>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter Property="Background" Value="#3D9D56"/>
                                         </Trigger>
                                         <DataTrigger Binding="{Binding IsPolling}" Value="True">
-                                            <Setter Property="Content" Value="? Stop"/>
+                                            <Setter Property="Content" Value="&#x25A0; Stop"/>
                                             <Setter Property="Background" Value="#C42B1C"/>
                                         </DataTrigger>
                                         <MultiDataTrigger>
@@ -368,6 +374,24 @@ Height="700" Width="900"
                                 </Style>
                             </Button.Style>
                         </Button>
+                    </StackPanel>
+                    <!-- Session/API Status -->
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock AutomationProperties.AutomationId="SessionStatusText" Text="{Binding SessionStatus}" Foreground="{StaticResource TextMuted}" FontSize="11"/>
+                        <TextBlock Text=" | " Foreground="{StaticResource TextMuted}" FontSize="11"
+                                   Visibility="{Binding HasApiStatus, Converter={StaticResource BoolToVis}}"/>
+                        <TextBlock AutomationProperties.AutomationId="ApiStatusText" Text="{Binding ApiStatusText}" FontSize="11">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource AccentGreen}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsUsingV1Fallback}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource AccentGold}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
                 </StackPanel>
 
@@ -413,7 +437,7 @@ Height="700" Width="900"
                     <!-- User Info Card -->
                     <Border Grid.Column="0" Grid.Row="0" Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Text="?? User Info" Style="{StaticResource SectionHeader}"/>
+                            <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE77B;" FontFamily="Segoe MDL2 Assets"/><Run Text=" User Info"/></TextBlock>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -444,7 +468,7 @@ Height="700" Width="900"
                     <!-- Game Info Card -->
                     <Border Grid.Column="1" Grid.Row="0" Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Text="?? Current Game" Style="{StaticResource SectionHeader}"/>
+                            <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Current Game"/></TextBlock>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -509,10 +533,26 @@ Height="700" Width="900"
                             <!-- Progress Bar -->
                             <Grid Margin="0,10,0,0">
                                 <Border Background="#3C3C3C" Height="8" CornerRadius="4"/>
-                                <Border Background="{StaticResource AccentGreen}" Height="8" CornerRadius="4" 
+                                <Border Background="{StaticResource AccentGreen}" Height="8" CornerRadius="4"
                                         HorizontalAlignment="Left"
                                         Width="{Binding GameCompletionPercent, FallbackValue=0}"/>
                             </Grid>
+
+                            <!-- Guide Links -->
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
+                                        Visibility="{Binding HasGameInfo, Converter={StaticResource BoolToVis}}">
+                                <Button Style="{StaticResource ModernButton}" Click="NavigateToGuidesPage_Click"
+                                        Padding="8,4" FontSize="12">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE82D;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                        <TextBlock Text="View Guide" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource ModernButton}" Click="OpenGuideInBrowser_Click"
+                                        Padding="8,4" FontSize="12" ToolTip="Open in browser">
+                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"/>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
@@ -520,13 +560,13 @@ Height="700" Width="900"
                     <Border Grid.Column="1" Grid.Row="1" Style="{StaticResource Card}">
                         <DockPanel>
                             <!-- Header -->
-                            <TextBlock DockPanel.Dock="Top" Text="?? Current Focus" Style="{StaticResource SectionHeader}"/>
+                            <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionHeader}"><Run Text="&#xE81D;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Current Focus"/></TextBlock>
                             
                             <!-- Navigation Buttons -->
                             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
-                                <Button Content="? Prev" Style="{StaticResource ModernButton}" Command="{Binding PreviousFocusCommand}" Width="80"/>
+                                <Button Content="&#x25C0; Prev" Style="{StaticResource ModernButton}" Command="{Binding PreviousFocusCommand}" Width="80"/>
                                 <Button Content="Set Focus" Style="{StaticResource PrimaryButton}" Command="{Binding SetFocusCommand}" Width="100"/>
-                                <Button Content="Next ?" Style="{StaticResource ModernButton}" Command="{Binding NextFocusCommand}" Width="80"/>
+                                <Button Content="Next &#x25B6;" Style="{StaticResource ModernButton}" Command="{Binding NextFocusCommand}" Width="80"/>
                             </StackPanel>
                             
                             <!-- Achievement Info - fills remaining space -->
@@ -559,11 +599,16 @@ Height="700" Width="900"
                     <Border Grid.Column="0" Grid.Row="1" Style="{StaticResource Card}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <TextBlock Text="?? Overlay Windows" Style="{StaticResource SectionHeader}" Margin="0"/>
-                                <Button Content="?? Settings" Style="{StaticResource ModernButton}" 
-                                        Click="NavigateToGeneralSettings_Click" 
+                                <TextBlock Style="{StaticResource SectionHeader}" Margin="0"><Run Text="&#xE78B;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Overlay Windows"/></TextBlock>
+                                <Button Style="{StaticResource ModernButton}"
+                                        Click="NavigateToGeneralSettings_Click"
                                         Padding="8,4" Margin="15,0,0,0" FontSize="13"
-                                        VerticalAlignment="Center"/>
+                                        VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                        <TextBlock Text="Settings" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -579,43 +624,83 @@ Height="700" Width="900"
                                 
                                 <!-- Focus -->
                                 <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="2">
-                                    <Button Content="?? Focus" Style="{StaticResource ModernButton}" Command="{Binding OpenFocusOverlayCommand}" Width="140"/>
-                                    <Button Content="??" Style="{StaticResource IconButton}" Click="NavigateToFocusSettings_Click" ToolTip="Focus Settings"/>
+                                    <Button Style="{StaticResource ModernButton}" Command="{Binding OpenFocusOverlayCommand}" Width="140">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE81D;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Focus" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToFocusSettings_Click" ToolTip="Focus Settings"/>
                                 </StackPanel>
                                 <!-- Alerts -->
                                 <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="2">
-                                    <Button Content="?? Alerts" Style="{StaticResource ModernButton}" Command="{Binding OpenAlertsOverlayCommand}" Width="140"/>
-                                    <Button Content="??" Style="{StaticResource IconButton}" Click="NavigateToAlertsSettings_Click" ToolTip="Alerts Settings"/>
+                                    <Button Style="{StaticResource ModernButton}" Command="{Binding OpenAlertsOverlayCommand}" Width="140">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Alerts" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToAlertsSettings_Click" ToolTip="Alerts Settings"/>
                                 </StackPanel>
                                 <!-- User Info -->
                                 <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="2">
-                                    <Button Content="?? User Info" Style="{StaticResource ModernButton}" Command="{Binding OpenUserInfoOverlayCommand}" Width="140"/>
-                                    <Button Content="??" Style="{StaticResource IconButton}" Click="NavigateToUserInfoSettings_Click" ToolTip="User Info Settings"/>
+                                    <Button Style="{StaticResource ModernButton}" Command="{Binding OpenUserInfoOverlayCommand}" Width="140">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="User Info" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToUserInfoSettings_Click" ToolTip="User Info Settings"/>
                                 </StackPanel>
                                 <!-- Game Info -->
                                 <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="2">
-                                    <Button Content="?? Game Info" Style="{StaticResource ModernButton}" Command="{Binding OpenGameInfoOverlayCommand}" Width="140"/>
-                                    <Button Content="??" Style="{StaticResource IconButton}" Click="NavigateToGameInfoSettings_Click" ToolTip="Game Info Settings"/>
+                                    <Button Style="{StaticResource ModernButton}" Command="{Binding OpenGameInfoOverlayCommand}" Width="140">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Game Info" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToGameInfoSettings_Click" ToolTip="Game Info Settings"/>
                                 </StackPanel>
                                 <!-- Progress -->
                                 <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="2">
-                                    <Button Content="?? Progress" Style="{StaticResource ModernButton}" Command="{Binding OpenGameProgressOverlayCommand}" Width="140"/>
-                                    <Button Content="??" Style="{StaticResource IconButton}" Click="NavigateToGameProgressSettings_Click" ToolTip="Progress Settings"/>
+                                    <Button Style="{StaticResource ModernButton}" Command="{Binding OpenGameProgressOverlayCommand}" Width="140">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Progress" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToGameProgressSettings_Click" ToolTip="Progress Settings"/>
                                 </StackPanel>
                                 <!-- Recent -->
                                 <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="2">
-                                    <Button Content="?? Recent" Style="{StaticResource ModernButton}" Command="{Binding OpenRecentUnlocksOverlayCommand}" Width="140"/>
-                                    <Button Content="??" Style="{StaticResource IconButton}" Click="NavigateToRecentUnlocksSettings_Click" ToolTip="Recent Unlocks Settings"/>
+                                    <Button Style="{StaticResource ModernButton}" Command="{Binding OpenRecentUnlocksOverlayCommand}" Width="140">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE823;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Recent" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToRecentUnlocksSettings_Click" ToolTip="Recent Unlocks Settings"/>
                                 </StackPanel>
                                 <!-- All Cheevos -->
                                 <StackPanel Grid.Row="3" Grid.Column="0" Orientation="Horizontal" Margin="2">
-                                    <Button Content="?? Cheevo Set" Style="{StaticResource ModernButton}" Command="{Binding OpenAchievementListOverlayCommand}" Width="140"/>
-                                    <Button Content="??" Style="{StaticResource IconButton}" Click="NavigateToAchievementListSettings_Click" ToolTip="Achievement List Settings"/>
+                                    <Button Style="{StaticResource ModernButton}" Command="{Binding OpenAchievementListOverlayCommand}" Width="140">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Cheevo Set" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToAchievementListSettings_Click" ToolTip="Achievement List Settings"/>
                                 </StackPanel>
                                 <!-- Media -->
                                 <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="2">
-                                    <Button Content="??? Media" Style="{StaticResource ModernButton}" Command="{Binding OpenRelatedMediaOverlayCommand}" Width="140"/>
-                                    <Button Content="??" Style="{StaticResource IconButton}" Click="NavigateToRelatedMediaSettings_Click" ToolTip="Media Settings"/>
+                                    <Button Style="{StaticResource ModernButton}" Command="{Binding OpenRelatedMediaOverlayCommand}" Width="140">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE8B9;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Media" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToRelatedMediaSettings_Click" ToolTip="Media Settings"/>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
@@ -632,8 +717,8 @@ Height="700" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="? Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                            <TextBlock Text="?? Focus Settings" Style="{StaticResource PageHeader}"/>
+                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE81D;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Focus Settings"/></TextBlock>
                         </StackPanel>
                         
                         <!-- Quick Actions -->
@@ -653,7 +738,7 @@ Height="700" Width="900"
                         <!-- Layout Settings -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Window Size" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE740;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Window Size"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -682,7 +767,7 @@ Height="700" Width="900"
                         <!-- Badge Settings -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Badge Settings" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE7C1;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Badge Settings"/></TextBlock>
                                 <CheckBox x:Name="ShowBadgeCheckBox" Content="Show Badge" IsChecked="True" 
                                           Checked="FocusVisibilityCheckBox_Changed" Unchecked="FocusVisibilityCheckBox_Changed"/>
                                 <Grid Margin="0,10,0,0">
@@ -713,7 +798,7 @@ Height="700" Width="900"
                         <!-- Container Settings -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Container Settings" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE71D;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Container Settings"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -750,7 +835,7 @@ Height="700" Width="900"
                         <!-- Element Visibility -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="??? Element Visibility" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE890;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Element Visibility"/></TextBlock>
                                 <WrapPanel>
                                     <CheckBox x:Name="ShowTitleCheckBox" Content="Title" IsChecked="True" Margin="0,0,15,5"
                                               Checked="FocusVisibilityCheckBox_Changed" Unchecked="FocusVisibilityCheckBox_Changed"/>
@@ -767,7 +852,7 @@ Height="700" Width="900"
                         <!-- Font Sizes -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Font Sizes" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE8D2;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Font Sizes"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -820,7 +905,7 @@ Height="700" Width="900"
                         <!-- Line Settings -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="? Separator Line" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE738;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Separator Line"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -858,8 +943,8 @@ Height="700" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="? Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                            <TextBlock Text="?? Alerts Settings" Style="{StaticResource PageHeader}"/>
+                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Alerts Settings"/></TextBlock>
                         </StackPanel>
                         
                         <Border Style="{StaticResource Card}">
@@ -874,37 +959,53 @@ Height="700" Width="900"
                                 <TextBlock Text="Test Alerts" FontWeight="SemiBold" Margin="0,0,0,10"/>
                                 
                                 <!-- Core Set Alerts -->
-                                <Border Background="#1A4EC9B0" BorderBrush="{StaticResource AccentGreen}" 
+                                <Border Background="#1A4EC9B0" BorderBrush="{StaticResource AccentGreen}"
                                         BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                            <TextBlock Text="??" FontSize="14" Margin="0,0,5,0"/>
-                                            <TextBlock Text="Core Set" FontWeight="SemiBold" 
+                                            <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Core Set" FontWeight="SemiBold"
                                                        Foreground="{StaticResource AccentGreen}"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Content="?? Test Achievement" Style="{StaticResource ModernButton}" 
-                                                    Command="{Binding TestAchievementAlertCommand}"/>
-                                            <Button Content="? Test Mastery" Style="{StaticResource ModernButton}" 
-                                                    Command="{Binding TestMasteryAlertCommand}"/>
+                                            <Button Style="{StaticResource ModernButton}" Command="{Binding TestAchievementAlertCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="Test Achievement" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource ModernButton}" Command="{Binding TestMasteryAlertCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="Test Mastery" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
-                                
+
                                 <!-- Subset/Bonus Alerts -->
-                                <Border Background="#1AFFD700" BorderBrush="{StaticResource AccentGold}" 
+                                <Border Background="#1AFFD700" BorderBrush="{StaticResource AccentGold}"
                                         BorderThickness="1" CornerRadius="4" Padding="10">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                            <TextBlock Text="??" FontSize="14" Margin="0,0,5,0"/>
-                                            <TextBlock Text="Subset / Bonus" FontWeight="SemiBold" 
+                                            <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Subset / Bonus" FontWeight="SemiBold"
                                                        Foreground="{StaticResource AccentGold}"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Content="?? Test Subset Achievement" Style="{StaticResource ModernButton}" 
-                                                    Command="{Binding TestSubsetAchievementAlertCommand}"/>
-                                            <Button Content="? Test Subset Mastery" Style="{StaticResource ModernButton}" 
-                                                    Command="{Binding TestSubsetMasteryAlertCommand}"/>
+                                            <Button Style="{StaticResource ModernButton}" Command="{Binding TestSubsetAchievementAlertCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="Test Subset Achievement" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource ModernButton}" Command="{Binding TestSubsetMasteryAlertCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="Test Subset Mastery" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -923,8 +1024,8 @@ Height="700" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="? Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                            <TextBlock Text="?? User Info Settings" Style="{StaticResource PageHeader}"/>
+                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE77B;" FontFamily="Segoe MDL2 Assets"/><Run Text=" User Info Settings"/></TextBlock>
                         </StackPanel>
                         
                         <Border Style="{StaticResource Card}">
@@ -942,7 +1043,7 @@ Height="700" Width="900"
                         
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Window Size" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE740;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Window Size"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -970,7 +1071,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="??? Element Visibility" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE890;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Element Visibility"/></TextBlock>
                                 <WrapPanel>
                                     <CheckBox x:Name="UserInfoShowRankCheckBox" Content="Rank" IsChecked="True" Margin="0,0,15,5"
                                               Checked="UserInfoVisibilityCheckBox_Changed" Unchecked="UserInfoVisibilityCheckBox_Changed"/>
@@ -986,7 +1087,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Font Sizes" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE8D2;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Font Sizes"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1024,8 +1125,8 @@ Height="700" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="? Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                            <TextBlock Text="?? Game Info Settings" Style="{StaticResource PageHeader}"/>
+                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Game Info Settings"/></TextBlock>
                         </StackPanel>
                         
                         <Border Style="{StaticResource Card}">
@@ -1043,7 +1144,7 @@ Height="700" Width="900"
                         
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Window Size" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE740;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Window Size"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1071,7 +1172,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Badge Settings" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE7C1;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Badge Settings"/></TextBlock>
                                 <CheckBox x:Name="GameInfoShowBadgeCheckBox" Content="Show Badge" IsChecked="True" 
                                           Checked="GameInfoVisibilityCheckBox_Changed" Unchecked="GameInfoVisibilityCheckBox_Changed"/>
                                 <StackPanel Margin="0,10,0,0">
@@ -1087,7 +1188,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="??? Element Visibility" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE890;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Element Visibility"/></TextBlock>
                                 <WrapPanel>
                                     <CheckBox x:Name="GameInfoShowTitleCheckBox" Content="Title" IsChecked="True" Margin="0,0,15,5"
                                               Checked="GameInfoVisibilityCheckBox_Changed" Unchecked="GameInfoVisibilityCheckBox_Changed"/>
@@ -1107,7 +1208,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Font Sizes" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE8D2;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Font Sizes"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1154,8 +1255,8 @@ Height="700" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="? Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                            <TextBlock Text="?? Game Progress Settings" Style="{StaticResource PageHeader}"/>
+                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Game Progress Settings"/></TextBlock>
                         </StackPanel>
                         
                         <Border Style="{StaticResource Card}">
@@ -1173,7 +1274,7 @@ Height="700" Width="900"
                         
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Window Size" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE740;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Window Size"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1201,7 +1302,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="??? Element Visibility" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE890;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Element Visibility"/></TextBlock>
                                 <WrapPanel>
                                     <CheckBox x:Name="GameProgressShowAchievementsCheckBox" Content="Achievements" IsChecked="True" Margin="0,0,15,5"
                                               Checked="GameProgressVisibilityCheckBox_Changed" Unchecked="GameProgressVisibilityCheckBox_Changed"/>
@@ -1219,7 +1320,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Font Sizes" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE8D2;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Font Sizes"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1257,8 +1358,8 @@ Height="700" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="? Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                            <TextBlock Text="?? Recent Unlocks Settings" Style="{StaticResource PageHeader}"/>
+                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE823;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Recent Unlocks Settings"/></TextBlock>
                         </StackPanel>
                         
                         <Border Style="{StaticResource Card}">
@@ -1276,7 +1377,7 @@ Height="700" Width="900"
                         
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Window Size" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE740;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Window Size"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1304,7 +1405,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Badge Settings" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE7C1;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Badge Settings"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1332,7 +1433,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Font Sizes" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE8D2;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Font Sizes"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1379,8 +1480,8 @@ Height="700" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="? Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                            <TextBlock Text="?? Achievement List Settings" Style="{StaticResource PageHeader}"/>
+                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Achievement List Settings"/></TextBlock>
                         </StackPanel>
                         
                         <Border Style="{StaticResource Card}">
@@ -1398,7 +1499,7 @@ Height="700" Width="900"
                         
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Window Size" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE740;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Window Size"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1426,7 +1527,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Badge Settings" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE7C1;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Badge Settings"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1454,7 +1555,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Display Options" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE762;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Display Options"/></TextBlock>
                                 <CheckBox x:Name="AchievementListShowUnlockedFirstCheckBox" Content="Show unlocked achievements first" IsChecked="True"
                                           Checked="AchievementListOptionsCheckBox_Changed" Unchecked="AchievementListOptionsCheckBox_Changed"/>
                             </StackPanel>
@@ -1472,8 +1573,8 @@ Height="700" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="? Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                            <TextBlock Text="??? Related Media Settings" Style="{StaticResource PageHeader}"/>
+                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE8B9;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Related Media Settings"/></TextBlock>
                         </StackPanel>
                         
                         <Border Style="{StaticResource Card}">
@@ -1491,7 +1592,7 @@ Height="700" Width="900"
                         
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Window Size" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE740;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Window Size"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1519,7 +1620,7 @@ Height="700" Width="900"
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="?? Container Settings" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE71D;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Container Settings"/></TextBlock>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1557,8 +1658,8 @@ Height="700" Width="900"
                         <StackPanel Margin="15">
                             <!-- Header with Back Button -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                                <Button Content="? Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                                <TextBlock Text="?? General Settings" Style="{StaticResource PageHeader}"/>
+                                <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                                <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE713;" FontFamily="Segoe MDL2 Assets"/><Run Text=" General Settings"/></TextBlock>
                             </StackPanel>
                         
                             <Border Style="{StaticResource Card}">
@@ -1611,9 +1712,22 @@ Height="700" Width="900"
                                 <TextBlock Text="API Settings" Style="{StaticResource SectionHeader}"/>
                                 <TextBlock Text="Configure RetroAchievements API behavior:" 
                                            Foreground="{StaticResource TextMuted}" Margin="0,0,0,10"/>
-                                <CheckBox Content="Enable API request logging" 
+                                <CheckBox Content="Enable API request logging"
                                           IsChecked="{Binding EnableApiLogging}"
                                           ToolTip="Log all API requests to the debug output. Useful for troubleshooting."/>
+                                <Separator Margin="0,12" Background="{StaticResource BackgroundLight}"/>
+                                <TextBlock Text="V2 API Connectivity" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,6"/>
+                                <TextBlock Text="Test whether the app can reach the RetroAchievements V2 API through Cloudflare."
+                                           Foreground="{StaticResource TextMuted}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="TestV2Button" AutomationProperties.AutomationId="TestV2Button" Style="{StaticResource ModernButton}" Click="TestV2Connection_Click" Padding="10,6" HorizontalAlignment="Left">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Test V2 Connection" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock x:Name="V2TestResult" VerticalAlignment="Center" Margin="12,0,0,0" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"/>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 
@@ -1630,12 +1744,17 @@ Height="700" Width="900"
                                     <CheckBox Content="Enable stream label file generation" 
                                               IsChecked="{Binding EnableStreamLabels}"
                                               ToolTip="Writes text files to the stream-labels/ folder for OBS integration. Includes user info, game info, current focus, recent unlocks, and achievement alerts. Supports multi-set games with set-name.txt and current-set.txt files."/>
-                                    <Button x:Name="OpenStreamLabelsFolder" Content="?? Open stream-labels Folder" 
-                                            Style="{StaticResource ModernButton}" 
+                                    <Button x:Name="OpenStreamLabelsFolder"
+                                            Style="{StaticResource ModernButton}"
                                             Click="OpenStreamLabelsFolder_Click"
                                             HorizontalAlignment="Left"
                                             Margin="0,8,0,0"
-                                            ToolTip="Open the stream-labels folder in Windows Explorer"/>
+                                            ToolTip="Open the stream-labels folder in Windows Explorer">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Open stream-labels Folder" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                             </Border>
 
@@ -1687,6 +1806,43 @@ Height="700" Width="900"
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>
+
+            <!-- Guides Page -->
+            <Grid x:Name="GuidesPage" Visibility="Collapsed">
+                <Grid.RenderTransform>
+                    <TranslateTransform/>
+                </Grid.RenderTransform>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Border Grid.Row="0" Background="{StaticResource BackgroundMedium}" Padding="10">
+                        <DockPanel>
+                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click" DockPanel.Dock="Left"/>
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="10,0,0,0">
+                                <Button Style="{StaticResource ModernButton}" Click="GuidesRefresh_Click" Padding="6,4" ToolTip="Refresh">
+                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets"/>
+                                </Button>
+                                <Button Style="{StaticResource ModernButton}" Click="OpenGuideInBrowser_Click" Padding="6,4" ToolTip="Open in browser">
+                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets"/>
+                                </Button>
+                            </StackPanel>
+                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource PageHeader}" Margin="10,0,0,0">
+                                <Run Text="&#xE82D;" FontFamily="Segoe MDL2 Assets"/>
+                                <Run Text=" RA Guide"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding GameTitle}" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- WebView2 Browser -->
+                    <wv2:WebView2 x:Name="GuidesWebView" Grid.Row="1"
+                                  DefaultBackgroundColor="Transparent"/>
+                </Grid>
+            </Grid>
             </Grid>
 
     </Grid>

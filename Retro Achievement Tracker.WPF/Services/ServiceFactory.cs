@@ -1,3 +1,4 @@
+using System.Net;
 using RATracker.WPF.Http.V2;
 
 namespace RATracker.WPF.Services;
@@ -12,6 +13,8 @@ public class ServiceFactory : IDisposable
     private readonly IFeatureFlagService _featureFlags;
     private readonly IV2ApiLogger? _logger;
     private readonly V2ApiMetrics _metrics;
+    private readonly CookieContainer? _sessionCookies;
+    private readonly string? _sessionUserAgent;
 
     private IMetadataService? _metadataService;
     private IAchievementProgressProvider? _progressProvider;
@@ -41,11 +44,9 @@ public class ServiceFactory : IDisposable
     {
         if (string.IsNullOrWhiteSpace(username))
             throw new ArgumentException("Username is required", nameof(username));
-        if (string.IsNullOrWhiteSpace(apiKey))
-            throw new ArgumentException("API key is required", nameof(apiKey));
 
         _username = username;
-        _apiKey = apiKey;
+        _apiKey = apiKey ?? string.Empty;
         _featureFlags = featureFlags ?? new FeatureFlagService();
         _metrics = new V2ApiMetrics();
 
@@ -53,6 +54,24 @@ public class ServiceFactory : IDisposable
         var loggingEnabled = enableLogging ?? _featureFlags.EnableApiLogging;
         _logger = loggingEnabled ? new DebugApiLogger(_metrics, true) : null;
     }
+
+    /// <summary>
+    /// Creates a new ServiceFactory with session-based authentication for V2 API.
+    /// V1 still uses apiKey. V2 uses session cookies from WebView2 login.
+    /// </summary>
+    public ServiceFactory(string username, string apiKey,
+        CookieContainer sessionCookies, string sessionUserAgent,
+        IFeatureFlagService? featureFlags = null, bool? enableLogging = null)
+        : this(username, apiKey, featureFlags, enableLogging)
+    {
+        _sessionCookies = sessionCookies ?? throw new ArgumentNullException(nameof(sessionCookies));
+        _sessionUserAgent = sessionUserAgent ?? throw new ArgumentNullException(nameof(sessionUserAgent));
+    }
+
+    /// <summary>
+    /// Whether this factory has session cookies for V2 API calls.
+    /// </summary>
+    public bool HasSessionAuth => _sessionCookies != null && _sessionUserAgent != null;
 
     /// <summary>
     /// Gets the feature flag service.
@@ -79,7 +98,9 @@ public class ServiceFactory : IDisposable
         {
             if (_featureFlags.UseV2ForMetadata)
             {
-                _metadataService = new V2MetadataService(_apiKey, _logger);
+                _metadataService = HasSessionAuth
+                    ? new V2MetadataService(new V2Client(_sessionCookies!, _sessionUserAgent!, _apiKey, logger: _logger))
+                    : new V2MetadataService(_apiKey, _logger);
             }
             else
             {
@@ -102,11 +123,19 @@ public class ServiceFactory : IDisposable
         {
             if (_featureFlags.UseV2ForProgress)
             {
-                // Use V2 with V1 fallback
-                _progressProvider = new V2AchievementProgressProvider(
-                    _apiKey, 
-                    _username, 
-                    _featureFlags.EnableV1Fallback);
+                if (HasSessionAuth)
+                {
+                    var v2Client = new V2Client(_sessionCookies!, _sessionUserAgent!, _apiKey, logger: _logger);
+                    var v1Fallback = _featureFlags.EnableV1Fallback
+                        ? new V1AchievementProgressProvider(_username, _apiKey)
+                        : null;
+                    _progressProvider = new V2AchievementProgressProvider(v2Client, v1Fallback);
+                }
+                else
+                {
+                    _progressProvider = new V2AchievementProgressProvider(
+                        _apiKey, _username, _featureFlags.EnableV1Fallback);
+                }
             }
             else
             {
@@ -130,16 +159,18 @@ public class ServiceFactory : IDisposable
 
         if (_progressService == null)
         {
-            IProgressServiceLogger progressLogger = _featureFlags.EnableApiLogging 
-                ? DebugProgressServiceLogger.Instance 
+            IProgressServiceLogger progressLogger = _featureFlags.EnableApiLogging
+                ? DebugProgressServiceLogger.Instance
                 : NullProgressServiceLogger.Instance;
 
-            _progressService = new HybridProgressService(
-                _username, 
-                _apiKey, 
-                _featureFlags, 
-                progressLogger,
-                _logger);
+            _progressService = HasSessionAuth
+                ? new HybridProgressService(
+                    _username, _apiKey,
+                    _sessionCookies!, _sessionUserAgent!,
+                    _featureFlags, progressLogger, _logger)
+                : new HybridProgressService(
+                    _username, _apiKey,
+                    _featureFlags, progressLogger, _logger);
         }
 
         return _progressService;

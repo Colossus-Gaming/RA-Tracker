@@ -114,10 +114,10 @@
                                Margin="0,4,0,0">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
-                                <Setter Property="Text" Value="?? Locked"/>
+                                <Setter Property="Text" Value="&#x1F512; Locked"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsUnlocked}" Value="True">
-                                        <Setter Property="Text" Value="? Unlocked"/>
+                                        <Setter Property="Text" Value="&#x2714; Unlocked"/>
                                         <Setter Property="Foreground" Value="LightGreen"/>
                                     </DataTrigger>
                                 </Style.Triggers>

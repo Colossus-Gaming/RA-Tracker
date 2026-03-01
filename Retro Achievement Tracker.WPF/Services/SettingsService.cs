@@ -232,6 +232,41 @@ public class SettingsService
     }
 
     /// <summary>
+    /// Gets the decrypted password from settings.
+    /// Returns empty string if password is not saved.
+    /// </summary>
+    public string GetPassword()
+    {
+        if (!_currentSettings.RememberPassword || string.IsNullOrEmpty(_currentSettings.EncryptedPassword))
+            return string.Empty;
+        return DecryptApiKey(_currentSettings.EncryptedPassword);
+    }
+
+    /// <summary>
+    /// Sets and encrypts the password in settings.
+    /// </summary>
+    /// <param name="password">The plain text password.</param>
+    /// <param name="remember">Whether to persist the encrypted password.</param>
+    public void SetPassword(string password, bool remember)
+    {
+        _currentSettings.RememberPassword = remember;
+        _currentSettings.EncryptedPassword = remember && !string.IsNullOrEmpty(password)
+            ? EncryptApiKey(password)
+            : string.Empty;
+        ScheduleSave();
+    }
+
+    /// <summary>
+    /// Clears the stored password.
+    /// </summary>
+    public void ClearPassword()
+    {
+        _currentSettings.EncryptedPassword = string.Empty;
+        _currentSettings.RememberPassword = false;
+        ScheduleSave();
+    }
+
+    /// <summary>
     /// Updates a setting value and schedules a save.
     /// </summary>
     /// <typeparam name="T">The type of the value.</typeparam>

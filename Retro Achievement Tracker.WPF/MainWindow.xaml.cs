@@ -1,7 +1,11 @@
-﻿using System.IO;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
+using Microsoft.Web.WebView2.Core;
+using RATracker.WPF.Http.V2;
 using RATracker.WPF.Services;
 using RATracker.WPF.ViewModels;
 using RATracker.WPF.Views;
@@ -24,9 +28,11 @@ public partial class MainWindow : Window
     private RelatedMediaOverlay? _relatedMediaOverlay;
     private AchievementListOverlay? _achievementListOverlay;
     private bool _isInitializingFocusSettings;
-    private bool _isRestoringApiKey;
+    private bool _isRestoringPassword;
     private bool _isNavigating;
     private Grid? _currentPage;
+    private bool _guidesWebViewReady;
+    private long _lastGuidesGameId;
 
     public MainWindow()
     {
@@ -51,6 +57,8 @@ public partial class MainWindow : Window
             _viewModel.FocusChanged += OnFocusChanged;
             _viewModel.TimezoneChanged += OnTimezoneChanged;
             _viewModel.PositionModeChanged += OnPositionModeChanged;
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.LoginRequired += OnLoginRequired;
 
             // Initialize focus settings sliders after component initialization
             Loaded += MainWindow_Loaded;
@@ -67,7 +75,7 @@ public partial class MainWindow : Window
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         // Restore API key to password box (PasswordBox doesn't support binding)
-        RestoreApiKeyToPasswordBox();
+        RestorePasswordToPasswordBox();
 
         // Initialize slider values from default ViewModel values for all overlays
         InitializeFocusSettingsFromOverlay();
@@ -87,20 +95,22 @@ public partial class MainWindow : Window
     /// PasswordBox doesn't support data binding for security reasons,
     /// so we must set it manually.
     /// </summary>
-    private void RestoreApiKeyToPasswordBox()
+    private void RestorePasswordToPasswordBox()
     {
-        _isRestoringApiKey = true;
+        _isRestoringPassword = true;
         try
         {
-            if (!string.IsNullOrEmpty(_viewModel.ApiKey))
+            var savedPassword = SettingsService.Instance.GetPassword();
+            if (!string.IsNullOrEmpty(savedPassword))
             {
-                ApiKeyBox.Password = _viewModel.ApiKey;
-                System.Diagnostics.Debug.WriteLine("[MainWindow] Restored API key to password box");
+                PasswordBox.Password = savedPassword;
+                _viewModel.Password = savedPassword;
+                System.Diagnostics.Debug.WriteLine("[MainWindow] Restored password to password box");
             }
         }
         finally
         {
-            _isRestoringApiKey = false;
+            _isRestoringPassword = false;
         }
     }
 
@@ -173,14 +183,14 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ApiKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
+    private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
     {
         // Don't update ViewModel when we're restoring the saved value
-        if (_isRestoringApiKey) return;
+        if (_isRestoringPassword) return;
 
         if (sender is PasswordBox passwordBox)
         {
-            _viewModel.ApiKey = passwordBox.Password;
+            _viewModel.Password = passwordBox.Password;
         }
     }
 
@@ -1106,6 +1116,112 @@ public partial class MainWindow : Window
             }
         }
 
+        private async void TestV2Connection_Click(object sender, RoutedEventArgs e)
+        {
+            var session = SessionService.Instance;
+            var apiKey = _viewModel.ApiKey;
+
+            if (!session.IsAuthenticated && string.IsNullOrWhiteSpace(apiKey))
+            {
+                V2TestResult.Text = "No session or API key. Log in first.";
+                V2TestResult.Foreground = System.Windows.Media.Brushes.IndianRed;
+                return;
+            }
+
+            TestV2Button.IsEnabled = false;
+            V2TestResult.Text = "Testing...";
+            V2TestResult.Foreground = TryFindResource("TextMuted") as System.Windows.Media.Brush
+                ?? System.Windows.Media.Brushes.Gray;
+
+            try
+            {
+                // Prefer session cookies (bypasses Cloudflare), fall back to API key
+                V2Client client;
+                if (session.IsAuthenticated && session.CookieContainer != null)
+                    client = new V2Client(session.CookieContainer, session.UserAgent!, apiKey);
+                else
+                    client = new V2Client(apiKey);
+
+                using (client)
+                {
+                    var result = await client.TestConnectivityAsync();
+                    V2TestResult.Text = result;
+
+                    if (result.StartsWith("OK"))
+                        V2TestResult.Foreground = TryFindResource("AccentGreen") as System.Windows.Media.Brush
+                            ?? System.Windows.Media.Brushes.LimeGreen;
+                    else if (result.StartsWith("BLOCKED"))
+                        V2TestResult.Foreground = TryFindResource("AccentGold") as System.Windows.Media.Brush
+                            ?? System.Windows.Media.Brushes.Orange;
+                    else
+                        V2TestResult.Foreground = System.Windows.Media.Brushes.IndianRed;
+                }
+            }
+            catch (Exception ex)
+            {
+                V2TestResult.Text = $"Error: {ex.Message}";
+                V2TestResult.Foreground = System.Windows.Media.Brushes.IndianRed;
+            }
+            finally
+            {
+                TestV2Button.IsEnabled = true;
+            }
+        }
+
+        private void OnLoginRequired(object? sender, EventArgs e)
+        {
+            ShowLoginWindow();
+        }
+
+        private void ShowLoginWindow()
+        {
+            System.Diagnostics.Debug.WriteLine("[MainWindow] Opening login window...");
+
+            var loginWindow = new Views.LoginWindow(
+                _viewModel.Username,
+                _viewModel.Password)
+            {
+                Owner = this
+            };
+
+            var result = loginWindow.ShowDialog();
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] Login window closed — result={result}, succeeded={loginWindow.LoginSucceeded}");
+
+            if (result == true && loginWindow.LoginSucceeded)
+            {
+                // Store session
+                var sessionService = SessionService.Instance;
+                sessionService.SetSession(
+                    loginWindow.ResultCookieContainer!,
+                    loginWindow.CapturedUserAgent!,
+                    loginWindow.SessionExpiresAt);
+
+                _viewModel.IsSessionAuthenticated = true;
+                _viewModel.SessionStatus = sessionService.StatusText;
+
+                System.Diagnostics.Debug.WriteLine($"[MainWindow] Session established — expires: {loginWindow.SessionExpiresAt?.ToString("g") ?? "unknown"}");
+
+                // If we extracted an API key, store it
+                if (!string.IsNullOrEmpty(loginWindow.ExtractedApiKey))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainWindow] API key extracted from settings page ({loginWindow.ExtractedApiKey.Length} chars)");
+                    _viewModel.ApiKey = loginWindow.ExtractedApiKey;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainWindow] No API key extracted from settings page");
+                }
+
+                // Continue starting if this was triggered by Start button
+                _viewModel.StartWithSession();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[MainWindow] Login cancelled or failed");
+                _viewModel.SessionStatus = "Login cancelled";
+            }
+        }
+
         #endregion
 
         #region Page Navigation
@@ -1187,6 +1303,118 @@ public partial class MainWindow : Window
         private void NavigateToAchievementListSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(AchievementListSettingsPage);
         private void NavigateToRelatedMediaSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(RelatedMediaSettingsPage);
         private void NavigateToGeneralSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(GeneralSettingsPage);
+        private void NavigateToGuidesPage_Click(object sender, RoutedEventArgs e)
+        {
+            NavigateToPage(GuidesPage);
+            NavigateGuidesWebView();
+        }
+
+        #endregion
+
+        #region Guides Page
+
+        private string GetGuideUrl()
+        {
+            var gameId = _viewModel.CurrentGame?.Id ?? 0;
+            return gameId > 0
+                ? $"https://retroachievements.org/game/{gameId}"
+                : "https://retroachievements.org";
+        }
+
+        private async void NavigateGuidesWebView()
+        {
+            try
+            {
+                if (!_guidesWebViewReady)
+                {
+                    await GuidesWebView.EnsureCoreWebView2Async();
+                    _guidesWebViewReady = true;
+                }
+
+                var url = GetGuideUrl();
+                var gameId = _viewModel.CurrentGame?.Id ?? 0;
+
+                if (gameId != _lastGuidesGameId || GuidesWebView.Source?.ToString() != url)
+                {
+                    _lastGuidesGameId = gameId;
+                    GuidesWebView.Source = new Uri(url);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"WebView2 navigation error: {ex.Message}");
+            }
+        }
+
+        private void GuidesRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            if (_guidesWebViewReady)
+            {
+                GuidesWebView.Reload();
+            }
+        }
+
+        private void OpenGuideInBrowser_Click(object sender, RoutedEventArgs e)
+        {
+            var url = GetGuideUrl();
+            try
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to open browser: {ex.Message}");
+            }
+        }
+
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case nameof(MainViewModel.CurrentGame):
+                    // Push game data to all open overlays
+                    PushGameDataToOverlays();
+                    if (GuidesPage.Visibility == Visibility.Visible)
+                        NavigateGuidesWebView();
+                    break;
+
+                case nameof(MainViewModel.UserSummary):
+                    // Push user data to open User Info overlay
+                    if (_userInfoOverlay?.IsVisible == true && _viewModel.UserSummary != null)
+                        _userInfoOverlay.ViewModel.SetUserInfo(_viewModel.UserSummary);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Pushes current game data to all open overlay windows.
+        /// Called when CurrentGame changes from a poll update.
+        /// </summary>
+        private void PushGameDataToOverlays()
+        {
+            var game = _viewModel.CurrentGame;
+            if (game == null) return;
+
+            System.Diagnostics.Debug.WriteLine($"[MainWindow] Pushing game data to open overlays: {game.Title}");
+
+            if (_gameInfoOverlay?.IsVisible == true)
+                _gameInfoOverlay.ViewModel.SetGameInfo(game);
+
+            if (_gameProgressOverlay?.IsVisible == true)
+                _gameProgressOverlay.ViewModel.SetGameProgress(game);
+
+            if (_relatedMediaOverlay?.IsVisible == true)
+                _relatedMediaOverlay.ViewModel.SetGameImage(game);
+
+            if (_recentUnlocksOverlay?.IsVisible == true && game.Achievements != null)
+            {
+                var unlocked = game.Achievements.Where(a => a.DateEarned.HasValue).ToList();
+                _recentUnlocksOverlay.SetAchievements(unlocked);
+            }
+
+            if (_achievementListOverlay?.IsVisible == true && game.Achievements != null)
+                _achievementListOverlay.SetAchievements(game.Achievements);
+        }
 
         #endregion
     }

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
@@ -14,6 +15,7 @@ public class V2Client : IDisposable
     private const string DefaultBaseUrl = "https://retroachievements.org";
     private const string ApiPath = "/api/v2";
     private const string JsonApiMediaType = "application/vnd.api+json";
+    private const string UserAgent = "RATracker/1.0 (.NET; WPF)";
 
     private readonly HttpClient _httpClient;
     private readonly string _baseUrl;
@@ -22,12 +24,13 @@ public class V2Client : IDisposable
 
     /// <summary>
     /// Creates a new V2Client with the specified API key.
+    /// Uses an HttpClientHandler with cookies and compression to handle Cloudflare.
     /// </summary>
     /// <param name="apiKey">The RetroAchievements API key.</param>
     /// <param name="baseUrl">The base URL for the API (optional, defaults to production).</param>
     /// <param name="logger">Optional logger for observability.</param>
     public V2Client(string apiKey, string? baseUrl = null, IV2ApiLogger? logger = null)
-        : this(apiKey, new HttpClient(), baseUrl, logger)
+        : this(apiKey, CreateDefaultHttpClient(), baseUrl, logger)
     {
         _ownsHttpClient = true;
     }
@@ -54,6 +57,88 @@ public class V2Client : IDisposable
         _httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(JsonApiMediaType));
         _httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+    }
+
+    /// <summary>
+    /// Creates a new V2Client using session cookies to bypass Cloudflare,
+    /// with an optional API key for API-level authentication.
+    /// </summary>
+    /// <param name="cookieContainer">Pre-populated cookie container with session cookies.</param>
+    /// <param name="userAgent">The User-Agent string from WebView2 (must match for cf_clearance).</param>
+    /// <param name="apiKey">Optional API key for X-API-Key header auth.</param>
+    /// <param name="baseUrl">The base URL for the API (optional, defaults to production).</param>
+    /// <param name="logger">Optional logger for observability.</param>
+    public V2Client(CookieContainer cookieContainer, string userAgent, string? apiKey = null, string? baseUrl = null, IV2ApiLogger? logger = null)
+    {
+        if (cookieContainer == null) throw new ArgumentNullException(nameof(cookieContainer));
+        if (string.IsNullOrWhiteSpace(userAgent)) throw new ArgumentException("User-Agent is required", nameof(userAgent));
+
+        var handler = new HttpClientHandler
+        {
+            UseCookies = true,
+            CookieContainer = cookieContainer,
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
+            AllowAutoRedirect = true,
+            MaxAutomaticRedirections = 5
+        };
+
+        _httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
+        _baseUrl = (baseUrl ?? DefaultBaseUrl).TrimEnd('/');
+        _ownsHttpClient = true;
+        _logger = logger ?? NullApiLogger.Instance;
+
+        // Session cookies bypass Cloudflare; API key authenticates the API request
+        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(JsonApiMediaType));
+        _httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
+        if (!string.IsNullOrWhiteSpace(apiKey))
+            _httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
+    }
+
+    private static HttpClient CreateDefaultHttpClient()
+    {
+        var handler = new HttpClientHandler
+        {
+            UseCookies = true,
+            CookieContainer = new CookieContainer(),
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
+            AllowAutoRedirect = true,
+            MaxAutomaticRedirections = 5
+        };
+        return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
+    }
+
+    /// <summary>
+    /// Tests connectivity to the V2 API. Returns a diagnostic string.
+    /// </summary>
+    public async Task<string> TestConnectivityAsync(CancellationToken cancellationToken = default)
+    {
+        var url = $"{_baseUrl}{ApiPath}/systems?page[size]=1";
+        var sw = Stopwatch.StartNew();
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            sw.Stop();
+
+            if (body.Contains("Just a moment") || body.Contains("cf_chl_opt"))
+                return $"BLOCKED by Cloudflare ({sw.ElapsedMilliseconds}ms). Status: {(int)response.StatusCode}. The V2 API requires browser-level auth to bypass Cloudflare.";
+
+            if (!response.IsSuccessStatusCode)
+                return $"HTTP {(int)response.StatusCode} ({sw.ElapsedMilliseconds}ms): {body[..Math.Min(200, body.Length)]}";
+
+            var doc = JsonConvert.DeserializeObject<JsonApiDocument>(body);
+            var count = doc?.GetResourceCollection().Count ?? 0;
+            return $"OK ({sw.ElapsedMilliseconds}ms) — V2 API reachable. Got {count} system(s) in response.";
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            return $"ERROR ({sw.ElapsedMilliseconds}ms): {ex.GetType().Name}: {ex.Message}";
+        }
     }
 
     /// <summary>
@@ -224,6 +309,14 @@ public class V2Client : IDisposable
 
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         stopwatch.Stop();
+
+        // Detect Cloudflare challenge pages (can happen even on 200 status)
+        if (content.Contains("Just a moment") || content.Contains("cf_chl_opt"))
+        {
+            _logger.LogError(method.Method, url, "Cloudflare challenge detected", (int)response.StatusCode);
+            throw new V2ApiException(
+                "Cloudflare challenge detected — session may have expired", (int)response.StatusCode);
+        }
 
         if (!response.IsSuccessStatusCode)
         {

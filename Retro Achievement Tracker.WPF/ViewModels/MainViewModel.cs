@@ -30,6 +30,10 @@ public class MainViewModel : ViewModelBase
 
     private string _username = string.Empty;
     private string _apiKey = string.Empty;
+    private string _password = string.Empty;
+    private bool _rememberPassword;
+    private bool _isSessionAuthenticated;
+    private string _sessionStatus = "Not connected";
     private string _statusMessage = "Enter your RetroAchievements credentials to begin.";
     private string _statusIcon = "?";
     private bool _isPolling;
@@ -144,6 +148,8 @@ public class MainViewModel : ViewModelBase
             // Credentials
             _username = settings.Username;
             _apiKey = _settingsService.GetApiKey();
+            _password = _settingsService.GetPassword();
+            _rememberPassword = settings.RememberPassword;
 
             // Auto-launch settings
             _autoStart = settings.AutoStart;
@@ -247,6 +253,86 @@ public class MainViewModel : ViewModelBase
             }
         }
     }
+
+    /// <summary>
+    /// The user's password (transient in memory, persisted via SettingsService if RememberPassword is true).
+    /// </summary>
+    public string Password
+    {
+        get => _password;
+        set
+        {
+            if (SetProperty(ref _password, value))
+            {
+                UpdateCanStart();
+                SaveSettingIfNotLoading(() =>
+                    _settingsService.SetPassword(value, _rememberPassword));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether to persist the password between sessions.
+    /// </summary>
+    public bool RememberPassword
+    {
+        get => _rememberPassword;
+        set
+        {
+            if (SetProperty(ref _rememberPassword, value))
+            {
+                SaveSettingIfNotLoading(() =>
+                    _settingsService.SetPassword(_password, value));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether we have an active browser session for V2 API.
+    /// </summary>
+    public bool IsSessionAuthenticated
+    {
+        get => _isSessionAuthenticated;
+        set => SetProperty(ref _isSessionAuthenticated, value);
+    }
+
+    /// <summary>
+    /// Human-readable session status.
+    /// </summary>
+    public string SessionStatus
+    {
+        get => _sessionStatus;
+        set => SetProperty(ref _sessionStatus, value);
+    }
+
+    /// <summary>
+    /// Text showing which API version is active (e.g., "V2 API active" or "V1 fallback").
+    /// </summary>
+    public string ApiStatusText
+    {
+        get => _apiStatusText;
+        set
+        {
+            if (SetProperty(ref _apiStatusText, value))
+                OnPropertyChanged(nameof(HasApiStatus));
+        }
+    }
+    private string _apiStatusText = string.Empty;
+
+    /// <summary>
+    /// Whether to show the API status indicator.
+    /// </summary>
+    public bool HasApiStatus => !string.IsNullOrEmpty(ApiStatusText);
+
+    /// <summary>
+    /// Whether the app is currently using V1 as a fallback (V2 failed).
+    /// </summary>
+    public bool IsUsingV1Fallback
+    {
+        get => _isUsingV1Fallback;
+        set => SetProperty(ref _isUsingV1Fallback, value);
+    }
+    private bool _isUsingV1Fallback;
 
     /// <summary>
     /// Helper method to save settings only when not in the loading phase.
@@ -1128,7 +1214,9 @@ public class MainViewModel : ViewModelBase
 
     private void UpdateCanStart()
     {
-        CanStart = !string.IsNullOrWhiteSpace(Username) && !string.IsNullOrWhiteSpace(ApiKey);
+        // Can start with: username + password (session auth) or username + API key (legacy)
+        CanStart = !string.IsNullOrWhiteSpace(Username)
+            && (!string.IsNullOrWhiteSpace(Password) || !string.IsNullOrWhiteSpace(ApiKey));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -1147,19 +1235,77 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    private void Start()
-    {
-        if (!CanStart) return;
+    /// <summary>
+    /// Fires when the ViewModel needs a browser login to establish a session.
+    /// MainWindow handles this by showing the LoginWindow.
+    /// </summary>
+    public event EventHandler? LoginRequired;
 
-        // Create service factory - always use V2 API
+    /// <summary>
+    /// Called by MainWindow after a successful browser login to continue starting.
+    /// </summary>
+    public void StartWithSession()
+    {
+        var session = SessionService.Instance;
+        if (!session.IsAuthenticated) return;
+
+        IsSessionAuthenticated = true;
+        SessionStatus = session.StatusText;
+
         var featureFlags = new FeatureFlagService(
             useV2ForMetadata: true,
             useV2ForProgress: true,
             useV2ForUserLookup: true,
             enableApiLogging: EnableApiLogging);
 
-        _serviceFactory = new ServiceFactory(Username, ApiKey, featureFlags, EnableApiLogging);
-        _trackingService = _serviceFactory.GetTrackingService();
+        _serviceFactory = new ServiceFactory(
+            Username, ApiKey,
+            session.CookieContainer!, session.UserAgent!,
+            featureFlags, EnableApiLogging);
+
+        StartPollingWithFactory();
+    }
+
+    private void Start()
+    {
+        if (!CanStart) return;
+
+        var session = SessionService.Instance;
+
+        // If we have a password but no API key or no session, request login
+        if (!string.IsNullOrWhiteSpace(Password) && !session.IsAuthenticated)
+        {
+            LoginRequired?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        // Create service factory
+        var featureFlags = new FeatureFlagService(
+            useV2ForMetadata: true,
+            useV2ForProgress: true,
+            useV2ForUserLookup: true,
+            enableApiLogging: EnableApiLogging);
+
+        if (session.IsAuthenticated && session.CookieContainer != null)
+        {
+            IsSessionAuthenticated = true;
+            SessionStatus = session.StatusText;
+            _serviceFactory = new ServiceFactory(
+                Username, ApiKey,
+                session.CookieContainer, session.UserAgent!,
+                featureFlags, EnableApiLogging);
+        }
+        else
+        {
+            _serviceFactory = new ServiceFactory(Username, ApiKey, featureFlags, EnableApiLogging);
+        }
+
+        StartPollingWithFactory();
+    }
+
+    private void StartPollingWithFactory()
+    {
+        _trackingService = _serviceFactory!.GetTrackingService();
 
         // Subscribe to tracking service events
         _trackingService.AchievementsUnlocked += OnTrackingServiceAchievementsUnlocked;
@@ -1171,6 +1317,25 @@ public class MainViewModel : ViewModelBase
         IsPolling = true;
         StatusIcon = "?";
         StatusMessage = "Polling started";
+
+        // Set API status indicator
+        if (_serviceFactory.HasSessionAuth)
+        {
+            ApiStatusText = "V2 API active";
+            IsUsingV1Fallback = false;
+        }
+        else if (!string.IsNullOrWhiteSpace(ApiKey))
+        {
+            ApiStatusText = "V1 API (no session)";
+            IsUsingV1Fallback = true;
+        }
+        else
+        {
+            ApiStatusText = "V1 API";
+            IsUsingV1Fallback = true;
+        }
+
+        Log($"Started polling — {ApiStatusText}");
 
         // Start the polling timer
         StartPollingTimer();
@@ -1191,15 +1356,28 @@ public class MainViewModel : ViewModelBase
         _serviceFactory?.Dispose();
         _trackingService = null;
 
-        if (!string.IsNullOrWhiteSpace(Username) && !string.IsNullOrWhiteSpace(ApiKey))
+        var hasCredentials = !string.IsNullOrWhiteSpace(Username)
+            && (!string.IsNullOrWhiteSpace(ApiKey) || !string.IsNullOrWhiteSpace(Password));
+        if (hasCredentials)
         {
+            var session = SessionService.Instance;
             var featureFlags = new FeatureFlagService(
                 useV2ForMetadata: true,
                 useV2ForProgress: true,
                 useV2ForUserLookup: true,
                 enableApiLogging: EnableApiLogging);
 
-            _serviceFactory = new ServiceFactory(Username, ApiKey, featureFlags, EnableApiLogging);
+            if (session.IsAuthenticated && session.CookieContainer != null)
+            {
+                _serviceFactory = new ServiceFactory(
+                    Username, ApiKey,
+                    session.CookieContainer, session.UserAgent!,
+                    featureFlags, EnableApiLogging);
+            }
+            else
+            {
+                _serviceFactory = new ServiceFactory(Username, ApiKey, featureFlags, EnableApiLogging);
+            }
         }
     }
 
@@ -1237,6 +1415,7 @@ public class MainViewModel : ViewModelBase
         {
             StatusIcon = "??";
             StatusMessage = "Polling RetroAchievements API...";
+            Log("Polling API...");
 
             var result = await _trackingService.PollAsync();
 
@@ -1247,19 +1426,45 @@ public class MainViewModel : ViewModelBase
                 {
                     StatusMessage = "Poll complete - no changes";
                 }
+                Log($"Poll success — notifications={result.TriggeredNotifications}");
+
+                // Update V1/V2 status based on what actually happened
+                if (_serviceFactory?.HasSessionAuth == true)
+                {
+                    if (ApiStatusText != "V2 API active")
+                    {
+                        ApiStatusText = "V2 API active";
+                        IsUsingV1Fallback = false;
+                    }
+                }
             }
             else
             {
                 StatusIcon = "?";
                 StatusMessage = result.ErrorMessage ?? "Poll failed";
+                Log($"Poll failed: {result.ErrorMessage}");
+
+                // If V2 failed, check if we fell back to V1
+                if (result.ErrorMessage?.Contains("Cloudflare") == true ||
+                    result.ErrorMessage?.Contains("403") == true)
+                {
+                    ApiStatusText = "V1 fallback (V2 blocked)";
+                    IsUsingV1Fallback = true;
+                    Log("Cloudflare block detected — using V1 fallback");
+                }
             }
         }
         catch (Exception ex)
         {
             StatusIcon = "?";
             StatusMessage = $"Error: {ex.Message}";
-            System.Diagnostics.Debug.WriteLine($"[Polling] Error: {ex}");
+            Log($"Poll error: {ex}");
         }
+    }
+
+    private static void Log(string message)
+    {
+        System.Diagnostics.Debug.WriteLine($"[MainViewModel] {message}");
     }
 
     #region Tracking Service Event Handlers

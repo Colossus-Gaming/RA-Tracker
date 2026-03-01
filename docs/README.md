@@ -121,6 +121,11 @@ The `v1/` directory contains endpoint-by-endpoint Markdown exports from the publ
 - [get-developer-ticket-stats](v1/get-ticket-data/get-developer-ticket-stats.md) — ticket stats for a developer
 - [get-game-ticket-stats](v1/get-ticket-data/get-game-ticket-stats.md) — ticket stats for a game
 
+## Testing
+
+- [Testing Data](testing/README.md): real API response samples and V1/V2 endpoint cross-reference.
+- **Integration Tests**: FlaUI.UIA3 tests in `Retro Achievement Tracker.Tests/IntegrationTests/` launch the WPF app, interact via UI Automation (no focus stealing), and capture diagnostic logs. Run with: `dotnet test --filter "Category=Integration"`.
+
 ## Project Plans
 
 - [Subset Notifications](plans/subset-notifications-plan.md): implementation plan for separate Core/Bonus/Specialty achievement notifications.

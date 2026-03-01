@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http;
 using RATracker.Models;
 using RATracker.WPF.Http.V2;
@@ -114,6 +115,35 @@ public class HybridProgressService : IProgressService, IDisposable
         }
 
         // Initialize V1 service if V1 fallback is enabled or V2 is disabled
+        if (!featureFlags.UseV2ForProgress || featureFlags.EnableV1Fallback)
+        {
+            _v1Service = new V1ProgressService(username, apiKey);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new HybridProgressService with session-based V2 authentication.
+    /// </summary>
+    public HybridProgressService(
+        string username,
+        string apiKey,
+        CookieContainer sessionCookies,
+        string sessionUserAgent,
+        IFeatureFlagService featureFlags,
+        IProgressServiceLogger? logger = null,
+        IV2ApiLogger? v2ApiLogger = null)
+    {
+        _username = username ?? throw new ArgumentNullException(nameof(username));
+        _apiKey = apiKey ?? string.Empty;
+        _featureFlags = featureFlags ?? throw new ArgumentNullException(nameof(featureFlags));
+        _logger = logger ?? NullProgressServiceLogger.Instance;
+
+        if (featureFlags.UseV2ForProgress || featureFlags.EnableV1Fallback)
+        {
+            var v2Client = new V2Client(sessionCookies, sessionUserAgent, apiKey, logger: v2ApiLogger);
+            _v2Service = new V2ProgressService(v2Client, v2ApiLogger);
+        }
+
         if (!featureFlags.UseV2ForProgress || featureFlags.EnableV1Fallback)
         {
             _v1Service = new V1ProgressService(username, apiKey);

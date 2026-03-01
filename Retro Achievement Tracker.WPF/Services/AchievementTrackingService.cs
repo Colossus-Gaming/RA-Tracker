@@ -119,17 +119,24 @@ public class AchievementTrackingService : IDisposable
             if (CurrentUser == null)
             {
                 OnPollingStatusChanged("Updating user info...");
+                Log("Fetching user summary...");
                 CurrentUser = await _progressService.GetUserSummaryAsync(_username, cancellationToken);
-                
+
                 if (CurrentUser != null)
                 {
                     result.UserUpdated = true;
                     OnUserInfoUpdated(CurrentUser);
+                    Log($"User info loaded: {CurrentUser.UserName}, Rank #{CurrentUser.Rank}, LastGameID={CurrentUser.LastGameID}");
+                }
+                else
+                {
+                    Log("GetUserSummaryAsync returned null");
                 }
             }
 
             if (CurrentUser == null || CurrentUser.LastGameID <= 0)
             {
+                Log($"Cannot poll: CurrentUser={CurrentUser != null}, LastGameID={CurrentUser?.LastGameID ?? 0}");
                 result.Success = false;
                 return result;
             }
@@ -144,16 +151,18 @@ public class AchievementTrackingService : IDisposable
 
             var currentGameId = recentlyPlayed[0].GameId;
             bool isNewGame = CurrentProgress == null || currentGameId != CurrentProgress.GameId;
+            Log($"Currently playing game ID {currentGameId}, isNewGame={isNewGame}");
 
             // Check for recent achievements to detect if we need a full refresh
             var recentAchievements = await _progressService.GetUserRecentAchievementsAsync(_username, 10, cancellationToken);
-            bool hasNewUnlocks = recentAchievements.Any(ra => 
+            bool hasNewUnlocks = recentAchievements.Any(ra =>
                 LockedAchievements.Any(la => la.Id == ra.AchievementId));
 
             if (isNewGame || hasNewUnlocks)
             {
+                Log($"Fetching full game progress (isNewGame={isNewGame}, hasNewUnlocks={hasNewUnlocks})");
                 OnPollingStatusChanged("Updating game info...");
-                
+
                 var newProgress = await _progressService.GetUserGameProgressAsync(
                     _username, 
                     currentGameId, 
@@ -433,6 +442,11 @@ public class AchievementTrackingService : IDisposable
         {
             throw new ObjectDisposedException(nameof(AchievementTrackingService));
         }
+    }
+
+    private static void Log(string message)
+    {
+        System.Diagnostics.Debug.WriteLine($"[AchievementTrackingService] {message}");
     }
 
     #endregion
