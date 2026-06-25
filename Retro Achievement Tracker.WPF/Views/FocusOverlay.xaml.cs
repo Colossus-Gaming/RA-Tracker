@@ -89,9 +89,6 @@ public partial class FocusOverlay : Window
                 Top = settings.FocusOverlayY.Value;
             }
         }
-
-        // Apply initial position mode from settings
-        IsPositionMode = settings.PositionModeEnabled;
     }
 
     /// <summary>
@@ -118,23 +115,15 @@ public partial class FocusOverlay : Window
     }
 
     /// <summary>
-    /// Updates the positioning guide visibility based on position mode and content state.
+    /// Updates the positioning guide visibility based solely on this window's position mode.
     /// </summary>
     private void UpdatePositioningGuideVisibility()
     {
-        if (_isPositionMode)
-        {
-            // In position mode, always show the guide with a solid background for dragging
-            PositioningGuide.Visibility = Visibility.Visible;
-            PositioningGuide.Background = new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromArgb(1, 0, 0, 0)); // Nearly transparent but hit-testable
-        }
-        else
-        {
-            // Not in position mode - guide visibility depends on content opacity (original behavior)
-            PositioningGuide.Background = System.Windows.Media.Brushes.Transparent;
-            // The DataTrigger in XAML will handle visibility based on FocusContainer.Opacity
-        }
+        if (PositioningGuide == null) return;
+        PositioningGuide.Visibility = _isPositionMode ? Visibility.Visible : Visibility.Collapsed;
+        PositioningGuide.Background = _isPositionMode
+            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(1, 0, 0, 0)) // hit-testable
+            : System.Windows.Media.Brushes.Transparent;
     }
 
     /// <summary>

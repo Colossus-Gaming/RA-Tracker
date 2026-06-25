@@ -67,7 +67,6 @@ public class MainViewModel : ViewModelBase
     // Feature flags
     private bool _enableApiLogging;
     private bool _enableStreamLabels;
-    private bool _positionModeEnabled;
 
     // Recent Unlocks timezone settings
     private bool _recentUnlocksAutoDetectTimezone = true;
@@ -182,7 +181,6 @@ public class MainViewModel : ViewModelBase
             // Feature flags
             _enableApiLogging = settings.EnableApiLogging;
             _enableStreamLabels = settings.EnableStreamLabels;
-            _positionModeEnabled = settings.PositionModeEnabled;
 
             // Configure stream label service
             _streamLabelService.IsEnabled = _enableStreamLabels;
@@ -1080,30 +1078,6 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    /// <summary>
-    /// Gets or sets whether Position Mode is enabled for overlay windows.
-    /// When enabled, overlays show positioning guides and can be dragged.
-    /// When disabled, overlays are fully transparent for OBS capture.
-    /// </summary>
-    public bool PositionModeEnabled
-    {
-        get => _positionModeEnabled;
-        set
-        {
-            if (SetProperty(ref _positionModeEnabled, value))
-            {
-                // Notify all open overlay windows
-                PositionModeChanged?.Invoke(this, value);
-
-                SaveSettingIfNotLoading(() =>
-                {
-                    _settingsService.Settings.PositionModeEnabled = value;
-                    _settingsService.ScheduleSave();
-                });
-            }
-        }
-    }
-
     #endregion
 
     #region Recent Unlocks Timezone Settings
@@ -1237,7 +1211,6 @@ public class MainViewModel : ViewModelBase
     public event EventHandler<GameInfo>? GameMastered;
     public event EventHandler<Achievement>? FocusChanged;
     public event EventHandler<TimeZoneInfo>? TimezoneChanged;
-    public event EventHandler<bool>? PositionModeChanged;
 
     /// <summary>Raised when polling begins, so the view can auto-launch configured overlays.</summary>
     public event EventHandler? PollingStarted;
@@ -1878,7 +1851,8 @@ public class MainViewModel : ViewModelBase
             Title = "Test Achievement",
             Description = "This is a test notification!",
             Points = 10,
-            BadgeUri = "https://media.retroachievements.org/Badge/00001.png",
+            // A real, published badge (the old 0000x IDs 404 — RA badge IDs are 6 digits).
+            BadgeUri = "https://media.retroachievements.org/Badge/652105.png",
             SetType = AchievementSetType.Core,
             SetName = "Core"
         };
@@ -1901,7 +1875,8 @@ public class MainViewModel : ViewModelBase
             Title = "Bonus Challenge Complete!",
             Description = "This is a subset achievement notification!",
             Points = 25,
-            BadgeUri = "https://media.retroachievements.org/Badge/00002.png",
+            // A real, published badge (the old 0000x IDs 404 — RA badge IDs are 6 digits).
+            BadgeUri = "https://media.retroachievements.org/Badge/652178.png",
             SetType = AchievementSetType.Bonus,
             SetName = "Bonus"
         };

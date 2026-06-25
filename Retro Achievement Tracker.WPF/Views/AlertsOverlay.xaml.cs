@@ -30,8 +30,17 @@ public partial class AlertsOverlay : Window
         set
         {
             _isPositionMode = value;
-            PositioningGuide.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+            UpdatePositioningGuideVisibility();
         }
+    }
+
+    private void UpdatePositioningGuideVisibility()
+    {
+        if (PositioningGuide == null) return;
+        PositioningGuide.Visibility = _isPositionMode ? Visibility.Visible : Visibility.Collapsed;
+        PositioningGuide.Background = _isPositionMode
+            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(1, 0, 0, 0)) // hit-testable
+            : System.Windows.Media.Brushes.Transparent;
     }
 
     public AlertsViewModel ViewModel { get; }
@@ -81,9 +90,6 @@ public partial class AlertsOverlay : Window
                 Top = settings.AlertsOverlayY.Value;
             }
         }
-
-        // Apply initial position mode from settings
-        IsPositionMode = settings.PositionModeEnabled;
     }
 
     /// <summary>

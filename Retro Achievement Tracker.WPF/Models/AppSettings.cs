@@ -242,12 +242,6 @@ public class AppSettings
 
     #region Position Mode
 
-    /// <summary>
-    /// Gets or sets whether Position Mode is enabled globally.
-    /// When enabled, overlay windows show positioning guides and can be dragged.
-    /// When disabled, overlays are fully transparent for OBS capture.
-    /// </summary>
-    public bool PositionModeEnabled { get; set; }
 
     #endregion
 

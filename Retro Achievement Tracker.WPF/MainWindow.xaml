@@ -1716,16 +1716,31 @@ Height="790" Width="900"
                                 <StackPanel>
                                     <TextBlock Text="Position Mode (OBS Setup)" Style="{StaticResource SectionHeader}"/>
                                     <TextBlock TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" Margin="0,0,0,10">
-                                        <Run Text="When Position Mode is enabled, overlay windows show a visible border and can be dragged to position them. "/>
-                                        <Run Text="Disable Position Mode" FontWeight="SemiBold" Foreground="{StaticResource AccentGreen}"/>
-                                        <Run Text=" before going live to ensure overlays are fully transparent for OBS capture."/>
+                                        <Run Text="Enable Position Mode per window to show its outline and drag it into place. Each window is fully transparent for OBS capture when its box is unchecked. "/>
+                                        <Run Text="Uncheck all" FontWeight="SemiBold" Foreground="{StaticResource AccentGreen}"/>
+                                        <Run Text=" before going live."/>
                                     </TextBlock>
-                                    <CheckBox Content="Enable Position Mode (show overlay borders for positioning)" 
-                                              IsChecked="{Binding PositionModeEnabled}"
-                                              ToolTip="When enabled, overlay windows show positioning guides and can be dragged. Disable for clean OBS capture."/>
+                                    <UniformGrid Columns="2">
+                                        <CheckBox x:Name="FocusPositionModeCheckBox" Content="Focus" Margin="0,3"
+                                                  Checked="OverlayPositionModeCheckBox_Changed" Unchecked="OverlayPositionModeCheckBox_Changed"/>
+                                        <CheckBox x:Name="AlertsPositionModeCheckBox" Content="Alerts" Margin="0,3"
+                                                  Checked="OverlayPositionModeCheckBox_Changed" Unchecked="OverlayPositionModeCheckBox_Changed"/>
+                                        <CheckBox x:Name="UserInfoPositionModeCheckBox" Content="User Info" Margin="0,3"
+                                                  Checked="OverlayPositionModeCheckBox_Changed" Unchecked="OverlayPositionModeCheckBox_Changed"/>
+                                        <CheckBox x:Name="GameInfoPositionModeCheckBox" Content="Game Info" Margin="0,3"
+                                                  Checked="OverlayPositionModeCheckBox_Changed" Unchecked="OverlayPositionModeCheckBox_Changed"/>
+                                        <CheckBox x:Name="GameProgressPositionModeCheckBox" Content="Game Progress" Margin="0,3"
+                                                  Checked="OverlayPositionModeCheckBox_Changed" Unchecked="OverlayPositionModeCheckBox_Changed"/>
+                                        <CheckBox x:Name="RecentUnlocksPositionModeCheckBox" Content="Recent Unlocks" Margin="0,3"
+                                                  Checked="OverlayPositionModeCheckBox_Changed" Unchecked="OverlayPositionModeCheckBox_Changed"/>
+                                        <CheckBox x:Name="AchievementListPositionModeCheckBox" Content="Achievement List" Margin="0,3"
+                                                  Checked="OverlayPositionModeCheckBox_Changed" Unchecked="OverlayPositionModeCheckBox_Changed"/>
+                                        <CheckBox x:Name="RelatedMediaPositionModeCheckBox" Content="Related Media" Margin="0,3"
+                                                  Checked="OverlayPositionModeCheckBox_Changed" Unchecked="OverlayPositionModeCheckBox_Changed"/>
+                                    </UniformGrid>
                                     <TextBlock Margin="0,8,0,0" FontSize="11">
                                         <Run Text="Tip:" Foreground="{StaticResource AccentBlue}" FontWeight="SemiBold"/>
-                                        <Run Text=" You can also press 'P' while an overlay window is focused to toggle position mode." Foreground="{StaticResource TextMuted}"/>
+                                        <Run Text=" You can also press 'P' while an overlay window is focused to toggle its position mode." Foreground="{StaticResource TextMuted}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>

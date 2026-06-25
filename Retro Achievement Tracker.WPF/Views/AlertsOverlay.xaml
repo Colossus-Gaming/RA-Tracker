@@ -35,9 +35,9 @@ mc:Ignorable="d"
                 Canvas.Top="0"
                 Width="{Binding WindowWidth}"
                 Height="{Binding WindowHeight}"
-                Background="#01000000"
-                IsHitTestVisible="True"
-                Visibility="Collapsed">
+                Background="Transparent"
+                Visibility="Collapsed"
+                IsHitTestVisible="True">
             <Grid>
                 <!-- Dashed border using Rectangle -->
                 <Rectangle Stroke="#40FF9500" 

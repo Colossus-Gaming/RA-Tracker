@@ -58,7 +58,6 @@ public partial class MainWindow : Window
             _viewModel.GameMastered += OnGameMastered;
             _viewModel.FocusChanged += OnFocusChanged;
             _viewModel.TimezoneChanged += OnTimezoneChanged;
-            _viewModel.PositionModeChanged += OnPositionModeChanged;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
             _viewModel.LoginRequired += OnLoginRequired;
             _viewModel.PollingStarted += OnPollingStarted;
@@ -797,44 +796,27 @@ public partial class MainWindow : Window
 
     private void OnAchievementUnlocked(object? sender, RATracker.Models.Achievement achievement)
     {
-        // Ensure Alerts overlay exists and is visible for notifications
+        // An unlock fires the Alerts overlay ONLY. It must not touch the Focus overlay — the focus is
+        // controlled solely by the user (Prev/Next browse + Set Focus). Advancing the focus when the
+        // *focused* achievement is unlocked is handled separately in the ViewModel (refocus behavior),
+        // which raises FocusChanged.
         EnsureAlertsOverlayExists();
-        
+
         if (!_alertsOverlay!.IsVisible)
-        {
             _alertsOverlay.Show();
-        }
-        
+
         _alertsOverlay.QueueAchievementNotification(achievement);
-
-        // Also update the Focus overlay if visible
-        var setName = _viewModel.HasMultipleSets ? _viewModel.SelectedSetName : null;
-
-        if (_focusOverlay?.IsVisible == true)
-        {
-            _ = _focusOverlay.TransitionToAchievement(achievement, setName);
-        }
     }
 
     private void OnGameMastered(object? sender, RATracker.Models.GameInfo gameInfo)
     {
-        // Ensure Alerts overlay exists and is visible for notifications
+        // Mastery fires the Alerts overlay ONLY (same rule as unlocks — no Focus-overlay side effects).
         EnsureAlertsOverlayExists();
-        
+
         if (!_alertsOverlay!.IsVisible)
-        {
             _alertsOverlay.Show();
-        }
-        
+
         _alertsOverlay.QueueMasteryNotification(gameInfo);
-
-        // Also update the Focus overlay if visible
-        var setName = _viewModel.HasMultipleSets ? _viewModel.SelectedSetName : null;
-
-        if (_focusOverlay?.IsVisible == true)
-        {
-            _ = _focusOverlay.TransitionToMastery(gameInfo, setName);
-        }
     }
 
     private void OnFocusChanged(object? sender, RATracker.Models.Achievement achievement)
@@ -987,35 +969,50 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Handles Position Mode changes from the settings.
-    /// Updates all open overlay windows to enable/disable position mode.
+    /// Per-window Position Mode toggle (Settings). Turning a window on shows it (so it can be seen and
+    /// dragged) and reveals its outline; turning off clears the outline for clean OBS capture. Each
+    /// overlay shows its yellow outline only while its own IsPositionMode is true.
     /// </summary>
-    private void OnPositionModeChanged(object? sender, bool enabled)
+    private void OverlayPositionModeCheckBox_Changed(object sender, RoutedEventArgs e)
     {
-        // Update all open overlay windows
-        if (_focusOverlay != null)
-            _focusOverlay.IsPositionMode = enabled;
-        
-        if (_alertsOverlay != null)
-            _alertsOverlay.IsPositionMode = enabled;
-        
-        if (_userInfoOverlay != null)
-            _userInfoOverlay.IsPositionMode = enabled;
-        
-        if (_gameInfoOverlay != null)
-            _gameInfoOverlay.IsPositionMode = enabled;
-        
-        if (_gameProgressOverlay != null)
-            _gameProgressOverlay.IsPositionMode = enabled;
-        
-        if (_recentUnlocksOverlay != null)
-            _recentUnlocksOverlay.IsPositionMode = enabled;
-        
-        if (_relatedMediaOverlay != null)
-            _relatedMediaOverlay.IsPositionMode = enabled;
-        
-        if (_achievementListOverlay != null)
-            _achievementListOverlay.IsPositionMode = enabled;
+        if (sender is not CheckBox cb) return;
+        bool on = cb.IsChecked == true;
+
+        switch (cb.Name)
+        {
+            case nameof(FocusPositionModeCheckBox):
+                if (on) { EnsureFocusOverlayExists(); if (!_focusOverlay!.IsVisible) _focusOverlay.Show(); _focusOverlay.IsPositionMode = true; }
+                else if (_focusOverlay != null) _focusOverlay.IsPositionMode = false;
+                break;
+            case nameof(AlertsPositionModeCheckBox):
+                if (on) { EnsureAlertsOverlayExists(); if (!_alertsOverlay!.IsVisible) _alertsOverlay.Show(); _alertsOverlay.IsPositionMode = true; }
+                else if (_alertsOverlay != null) _alertsOverlay.IsPositionMode = false;
+                break;
+            case nameof(UserInfoPositionModeCheckBox):
+                if (on) { EnsureUserInfoOverlayExists(); if (!_userInfoOverlay!.IsVisible) _userInfoOverlay.Show(); _userInfoOverlay.IsPositionMode = true; }
+                else if (_userInfoOverlay != null) _userInfoOverlay.IsPositionMode = false;
+                break;
+            case nameof(GameInfoPositionModeCheckBox):
+                if (on) { EnsureGameInfoOverlayExists(); if (!_gameInfoOverlay!.IsVisible) _gameInfoOverlay.Show(); _gameInfoOverlay.IsPositionMode = true; }
+                else if (_gameInfoOverlay != null) _gameInfoOverlay.IsPositionMode = false;
+                break;
+            case nameof(GameProgressPositionModeCheckBox):
+                if (on) { EnsureGameProgressOverlayExists(); if (!_gameProgressOverlay!.IsVisible) _gameProgressOverlay.Show(); _gameProgressOverlay.IsPositionMode = true; }
+                else if (_gameProgressOverlay != null) _gameProgressOverlay.IsPositionMode = false;
+                break;
+            case nameof(RecentUnlocksPositionModeCheckBox):
+                if (on) { EnsureRecentUnlocksOverlayExists(); if (!_recentUnlocksOverlay!.IsVisible) _recentUnlocksOverlay.Show(); _recentUnlocksOverlay.IsPositionMode = true; }
+                else if (_recentUnlocksOverlay != null) _recentUnlocksOverlay.IsPositionMode = false;
+                break;
+            case nameof(AchievementListPositionModeCheckBox):
+                if (on) { EnsureAchievementListOverlayExists(); if (!_achievementListOverlay!.IsVisible) _achievementListOverlay.Show(); _achievementListOverlay.IsPositionMode = true; }
+                else if (_achievementListOverlay != null) _achievementListOverlay.IsPositionMode = false;
+                break;
+            case nameof(RelatedMediaPositionModeCheckBox):
+                if (on) { EnsureRelatedMediaOverlayExists(); if (!_relatedMediaOverlay!.IsVisible) _relatedMediaOverlay.Show(); _relatedMediaOverlay.IsPositionMode = true; }
+                else if (_relatedMediaOverlay != null) _relatedMediaOverlay.IsPositionMode = false;
+                break;
+        }
     }
 
     private void EnsureRelatedMediaOverlayExists()
