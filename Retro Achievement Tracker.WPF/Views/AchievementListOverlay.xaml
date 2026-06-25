@@ -208,9 +208,11 @@
                            HorizontalAlignment="Center"/>
             </Border>
             
-            <!-- Achievement Grid -->
-            <ScrollViewer Grid.Row="1" 
-                          VerticalScrollBarVisibility="Auto" 
+            <!-- Achievement Grid. Scrollbar hidden (still scrolls via wheel) so it never shows on the
+                 overlay and never steals content width — the window is sized to a clean multiple of the
+                 badge tile so columns fill edge-to-edge with no partial column. -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Hidden"
                           HorizontalScrollBarVisibility="Disabled"
                           Padding="8">
                 <ItemsControl ItemsSource="{Binding Achievements}">

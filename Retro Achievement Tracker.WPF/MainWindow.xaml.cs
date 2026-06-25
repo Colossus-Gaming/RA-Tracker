@@ -676,8 +676,9 @@ public partial class MainWindow : Window
     {
         EnsureAchievementListOverlayExists();
         var vm = _achievementListOverlay!.ViewModel;
-        vm.WindowWidth = 680;
-        vm.WindowHeight = 500;
+        // Clean multiple of the 76px badge tile + 32px chrome (8 cols x 6 rows).
+        vm.WindowWidth = 640;
+        vm.WindowHeight = 488;
         vm.BadgeSize = 64;
         vm.BadgeSpacing = 4;
         vm.ShowUnlockedFirst = true;
@@ -1065,11 +1066,8 @@ public partial class MainWindow : Window
             _achievementListOverlay.Show();
             _achievementListOverlay.ShowContentImmediate();
 
-            // Update with current game achievements if available
-            if (_viewModel.CurrentGame?.Achievements != null)
-            {
-                _achievementListOverlay.SetAchievements(_viewModel.CurrentGame.Achievements);
-            }
+            // Show the currently selected set's achievements (follows the dropdown for multi-set games).
+            _achievementListOverlay.SetAchievements(_viewModel.CurrentSetAchievements);
         }
         else
         {
@@ -1402,6 +1400,13 @@ public partial class MainWindow : Window
                         _userInfoOverlay.ViewModel.SetUserInfo(_viewModel.UserSummary);
                     break;
 
+                case nameof(MainViewModel.SelectedAchievementSet):
+                    // Keep the Achievement List ("Cheevos Set") overlay in sync with the dropdown's
+                    // sub-set selection — it otherwise only refreshed on a full game change.
+                    if (_achievementListOverlay?.IsVisible == true)
+                        _achievementListOverlay.SetAchievements(_viewModel.CurrentSetAchievements);
+                    break;
+
                 case nameof(MainViewModel.CurrentFocusAchievement):
                     // Browsing with Prev/Next changes the previewed achievement on the dashboard but must
                     // NOT push it to the on-stream Focus overlay — only Set Focus (and game changes) commit
@@ -1442,8 +1447,8 @@ public partial class MainWindow : Window
                 _recentUnlocksOverlay.SetAchievements(unlocked);
             }
 
-            if (_achievementListOverlay?.IsVisible == true && game.Achievements != null)
-                _achievementListOverlay.SetAchievements(game.Achievements);
+            if (_achievementListOverlay?.IsVisible == true)
+                _achievementListOverlay.SetAchievements(_viewModel.CurrentSetAchievements);
         }
 
         #endregion

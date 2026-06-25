@@ -710,6 +710,14 @@ public class MainViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// The achievements to display for the current view — the selected set's achievements for a
+    /// multi-set game, or the whole game's list otherwise. Feeds the Achievement List ("Cheevos Set")
+    /// overlay so it follows the dropdown's sub-set selection.
+    /// </summary>
+    public IReadOnlyList<Achievement> CurrentSetAchievements =>
+        GetAchievementsForCurrentSet() ?? new List<Achievement>();
+
+    /// <summary>
     /// Gets the achievements for the currently selected set, or all achievements if no multi-set support.
     /// </summary>
     private List<Achievement>? GetAchievementsForCurrentSet()

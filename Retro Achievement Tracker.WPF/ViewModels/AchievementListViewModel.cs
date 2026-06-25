@@ -70,9 +70,11 @@ public class AchievementListViewModel : ViewModelBase
 
     private ObservableCollection<AchievementListItem> _achievements = new();
 
-    // Layout settings
-    private double _windowWidth = 680;
-    private double _windowHeight = 500;
+    // Layout settings. Defaults are a clean multiple of the 76px badge tile (BadgeSize 64 + spacing 8 +
+    // border 4) plus 32px window chrome: 8 columns -> 8*76+32 = 640, 6 rows -> 6*76+32 = 488. The
+    // overlay snaps back to clean multiples on resize (see AchievementListOverlay.Window_SizeChanged).
+    private double _windowWidth = 640;
+    private double _windowHeight = 488;
     private double _containerCornerRadius = 8;
     private double _containerMargin = 5;
     private double _badgeSize = 64;
