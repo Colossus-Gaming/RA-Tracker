@@ -291,7 +291,7 @@ public class AlertsViewModel : ViewModelBase
     public double ContainerCornerRadius
     {
         get => _containerCornerRadius;
-        set => SetProperty(ref _containerCornerRadius, value);
+        set { if (SetProperty(ref _containerCornerRadius, value)) OnPropertyChanged(nameof(ContainerCornerRadiusValue)); }
     }
 
     public CornerRadius ContainerCornerRadiusValue => new(_containerCornerRadius);
@@ -305,7 +305,7 @@ public class AlertsViewModel : ViewModelBase
     public double BadgeCornerRadius
     {
         get => _badgeCornerRadius;
-        set => SetProperty(ref _badgeCornerRadius, value);
+        set { if (SetProperty(ref _badgeCornerRadius, value)) OnPropertyChanged(nameof(BadgeCornerRadiusValue)); }
     }
 
     public CornerRadius BadgeCornerRadiusValue => new(_badgeCornerRadius);
@@ -319,7 +319,7 @@ public class AlertsViewModel : ViewModelBase
     public double ContentSpacing
     {
         get => _contentSpacing;
-        set => SetProperty(ref _contentSpacing, value);
+        set { if (SetProperty(ref _contentSpacing, value)) OnPropertyChanged(nameof(ContentSpacingMargin)); }
     }
 
     public Thickness ContentSpacingMargin => new(_contentSpacing, 0, 0, 0);

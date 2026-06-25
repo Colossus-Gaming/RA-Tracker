@@ -111,8 +111,8 @@ public class MainViewModel : ViewModelBase
         OpenAchievementListOverlayCommand = new RelayCommand(OpenAchievementListOverlay);
         OpenRelatedMediaOverlayCommand = new RelayCommand(OpenRelatedMediaOverlay);
 
-        PreviousFocusCommand = new RelayCommand(PreviousFocus, () => CanNavigateFocus);
-        NextFocusCommand = new RelayCommand(NextFocus, () => CanNavigateFocus);
+        PreviousFocusCommand = new RelayCommand(PreviousFocus, () => CanGoToPreviousFocus);
+        NextFocusCommand = new RelayCommand(NextFocus, () => CanGoToNextFocus);
         SetFocusCommand = new RelayCommand(SetFocus, () => CurrentFocusAchievement != null);
 
         TestAchievementAlertCommand = new RelayCommand(TestAchievementAlert);
@@ -832,6 +832,12 @@ public class MainViewModel : ViewModelBase
     public bool HasFocusAchievement => CurrentFocusAchievement != null;
     public bool CanNavigateFocus => LockedAchievements.Count > 1;
 
+    /// <summary>Whether Prev can move back — false at the first achievement (no wrap-around).</summary>
+    public bool CanGoToPreviousFocus => CurrentFocusIndex > 0;
+
+    /// <summary>Whether Next can move forward — false at the last achievement (no wrap-around).</summary>
+    public bool CanGoToNextFocus => CurrentFocusIndex >= 0 && CurrentFocusIndex < LockedAchievements.Count - 1;
+
     public int CurrentFocusIndex
     {
         get => _currentFocusIndex;
@@ -841,6 +847,7 @@ public class MainViewModel : ViewModelBase
             {
                 if (value >= 0 && value < LockedAchievements.Count)
                     CurrentFocusAchievement = LockedAchievements[value];
+                OnPropertiesChanged(nameof(CanGoToPreviousFocus), nameof(CanGoToNextFocus));
             }
         }
     }
@@ -1792,36 +1799,33 @@ public class MainViewModel : ViewModelBase
 
     private void PreviousFocus()
     {
-        if (LockedAchievements.Count == 0) return;
+        // Browse only, no wrap-around: stop at the first achievement. Navigating updates the
+        // dashboard preview but does NOT set the focus — only the Set Focus button commits.
+        if (CurrentFocusIndex <= 0) return;
 
-        CurrentFocusIndex = CurrentFocusIndex <= 0
-            ? LockedAchievements.Count - 1
-            : CurrentFocusIndex - 1;
-
-        FocusChanged?.Invoke(this, CurrentFocusAchievement!);
+        CurrentFocusIndex--;
     }
 
     private void NextFocus()
     {
-        if (LockedAchievements.Count == 0) return;
+        // Browse only, no wrap-around: stop at the last achievement.
+        if (CurrentFocusIndex < 0 || CurrentFocusIndex >= LockedAchievements.Count - 1) return;
 
-        CurrentFocusIndex = CurrentFocusIndex >= LockedAchievements.Count - 1
-            ? 0
-            : CurrentFocusIndex + 1;
-
-        FocusChanged?.Invoke(this, CurrentFocusAchievement!);
+        CurrentFocusIndex++;
     }
 
+    /// <summary>
+    /// Commits the previewed achievement as the focus: notifies the overlay (FocusChanged) and
+    /// writes the focus stream labels. This is the only action that "sets" the focus.
+    /// </summary>
     private void SetFocus()
     {
-        if (CurrentFocusAchievement != null)
-        {
-            FocusChanged?.Invoke(this, CurrentFocusAchievement);
+        if (CurrentFocusAchievement == null) return;
 
-            // Write focus stream labels
-            var setName = HasMultipleSets ? SelectedSetName : null;
-            _streamLabelService.WriteFocusLabels(CurrentFocusAchievement, setName);
-        }
+        FocusChanged?.Invoke(this, CurrentFocusAchievement);
+
+        var setName = HasMultipleSets ? SelectedSetName : null;
+        _streamLabelService.WriteFocusLabels(CurrentFocusAchievement, setName);
     }
 
     /// <summary>

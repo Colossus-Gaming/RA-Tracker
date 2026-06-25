@@ -5,6 +5,7 @@ xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
 xmlns:converters="clr-namespace:RATracker.WPF.Converters"
+xmlns:behaviors="clr-namespace:RATracker.WPF.Behaviors"
 xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
 mc:Ignorable="d"
 Title="Retro Achievement Tracker"
@@ -410,11 +411,8 @@ Height="790" Width="900"
                                    Foreground="{StaticResource AccentGold}"
                                    HorizontalAlignment="Right"/>
                     </StackPanel>
-                    <Border CornerRadius="25" Width="50" Height="50" BorderThickness="2" BorderBrush="{StaticResource AccentBlue}">
-                        <Border.Background>
-                            <ImageBrush ImageSource="{Binding UserProfilePicture}" Stretch="UniformToFill"/>
-                        </Border.Background>
-                    </Border>
+                    <Border CornerRadius="25" Width="50" Height="50" BorderThickness="2" BorderBrush="{StaticResource AccentBlue}"
+                            behaviors:ImageAsync.Source="{Binding UserProfilePicture}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -449,11 +447,8 @@ Height="790" Width="900"
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" CornerRadius="5" Width="80" Height="80" Margin="0,0,15,0">
-                                    <Border.Background>
-                                        <ImageBrush ImageSource="{Binding UserProfilePicture}" Stretch="UniformToFill"/>
-                                    </Border.Background>
-                                </Border>
+                                <Border Grid.Column="0" CornerRadius="5" Width="80" Height="80" Margin="0,0,15,0"
+                                        behaviors:ImageAsync.Source="{Binding UserProfilePicture}"/>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Text="{Binding UserDisplayName}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
                                     <TextBlock Text="{Binding UserMotto}" FontSize="14" Foreground="{StaticResource TextMuted}" FontStyle="Italic"/>
@@ -480,11 +475,8 @@ Height="790" Width="900"
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" CornerRadius="5" Width="80" Height="80" Margin="0,0,15,0">
-                                    <Border.Background>
-                                        <ImageBrush ImageSource="{Binding CurrentGameBadgeUri}" Stretch="UniformToFill"/>
-                                    </Border.Background>
-                                </Border>
+                                <Border Grid.Column="0" CornerRadius="5" Width="80" Height="80" Margin="0,0,15,0"
+                                        behaviors:ImageAsync.Source="{Binding CurrentGameBadgeUri}"/>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Text="{Binding GameTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap"/>
                                     <TextBlock Text="{Binding GameConsole}" Foreground="{StaticResource AccentBlue}"/>
@@ -493,29 +485,58 @@ Height="790" Width="900"
                                     <StackPanel Orientation="Horizontal" Margin="0,5,0,0"
                                                 Visibility="{Binding HasAchievementSets, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="Set: " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                                        <ComboBox x:Name="AchievementSetComboBox"
-                                                  ItemsSource="{Binding AvailableAchievementSets}"
-                                                  SelectedItem="{Binding SelectedAchievementSet, Mode=TwoWay}"
-                                                  VerticalAlignment="Center"
-                                                  MinWidth="140">
-                                            <ComboBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding DisplayName}" Foreground="Black"/>
-                                                        <TextBlock Text=" (" Foreground="#666666"/>
-                                                        <TextBlock Text="{Binding AchievementCount}" Foreground="#2D7D46"/>
-                                                        <TextBlock Text=")" Foreground="#666666"/>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ComboBox.ItemTemplate>
-                                        </ComboBox>
-                                        <!-- Set-type badge (CORE / BONUS / SPECIALTY / …) colored by set type -->
-                                        <Border Margin="6,0,0,0" Padding="5,1" CornerRadius="5"
+                                        <!-- Selected set-type badge, moved to the LEFT of the dropdown so a long
+                                             set name can never push it off the panel/screen. -->
+                                        <Border Margin="0,0,6,0" Padding="5,1" CornerRadius="5"
                                                 VerticalAlignment="Center"
                                                 Background="{Binding SelectedAchievementSet.SetType, Converter={StaticResource SetTypeToAccentBrush}}">
                                             <TextBlock Text="{Binding SelectedAchievementSet.TypeLabel}"
                                                        Foreground="White" FontWeight="Bold" FontSize="9" FontFamily="Segoe UI"/>
                                         </Border>
+                                        <!-- Fixed-width when collapsed (name trims with an ellipsis); the open
+                                             dropdown measures items unconstrained, so it expands to the widest full
+                                             name and renders past the window edge onto the screen if needed. -->
+                                        <ComboBox x:Name="AchievementSetComboBox"
+                                                  ItemsSource="{Binding AvailableAchievementSets}"
+                                                  SelectedItem="{Binding SelectedAchievementSet, Mode=TwoWay}"
+                                                  VerticalAlignment="Center"
+                                                  Width="200"
+                                                  HorizontalContentAlignment="Stretch"
+                                                  ToolTip="{Binding SelectedAchievementSet.DisplayName}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <!-- Per-row sub-set/core indicator (dropdown list only). -->
+                                                        <Border x:Name="ItemTypePill" Grid.Column="0" Margin="0,0,6,0"
+                                                                Padding="4,0" CornerRadius="3" VerticalAlignment="Center"
+                                                                Background="{Binding SetType, Converter={StaticResource SetTypeToAccentBrush}}">
+                                                            <TextBlock Text="{Binding TypeLabel}" Foreground="White"
+                                                                       FontWeight="Bold" FontSize="8" FontFamily="Segoe UI"/>
+                                                        </Border>
+                                                        <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Foreground="Black"
+                                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text=" (" Foreground="#666666"/>
+                                                            <TextBlock Text="{Binding AchievementCount}" Foreground="#2D7D46"/>
+                                                            <TextBlock Text=")" Foreground="#666666"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                    <DataTemplate.Triggers>
+                                                        <!-- The collapsed selection box has no ComboBoxItem ancestor;
+                                                             hide the per-row pill there (the external badge to the left
+                                                             already shows the selected set's type). -->
+                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type ComboBoxItem}}}" Value="{x:Null}">
+                                                            <Setter TargetName="ItemTypePill" Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
                                     </StackPanel>
                                     
                                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -588,11 +609,8 @@ Height="790" Width="900"
                                 <!-- Focus achievement badge -->
                                 <Border DockPanel.Dock="Left" Width="64" Height="64" CornerRadius="5"
                                         Margin="0,0,12,0" VerticalAlignment="Top" ClipToBounds="True"
-                                        Visibility="{Binding HasFocusAchievement, Converter={StaticResource BoolToVis}}">
-                                    <Border.Background>
-                                        <ImageBrush ImageSource="{Binding FocusBadgeUri}" Stretch="UniformToFill"/>
-                                    </Border.Background>
-                                </Border>
+                                        behaviors:ImageAsync.Source="{Binding FocusBadgeUri}"
+                                        Visibility="{Binding HasFocusAchievement, Converter={StaticResource BoolToVis}}"/>
 
                                 <Grid>
                                     <Grid.RowDefinitions>
@@ -809,8 +827,8 @@ Height="790" Width="900"
                                                    Foreground="{StaticResource AccentBlue}" HorizontalAlignment="Center"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                        <TextBlock Text="Corner Radius" FontSize="12" Foreground="{StaticResource TextMuted}"/>
-                                        <Slider x:Name="BadgeCornerSlider" Minimum="0" Maximum="50" 
+                                        <TextBlock Text="Badge Corner Radius" FontSize="12" Foreground="{StaticResource TextMuted}"/>
+                                        <Slider x:Name="BadgeCornerSlider" Minimum="0" Maximum="50"
                                                 Value="5" TickFrequency="5" IsSnapToTickEnabled="True"
                                                 ValueChanged="FocusLayoutSlider_ValueChanged"/>
                                         <TextBlock Text="{Binding ElementName=BadgeCornerSlider, Path=Value, StringFormat={}{0:F0} px}" 

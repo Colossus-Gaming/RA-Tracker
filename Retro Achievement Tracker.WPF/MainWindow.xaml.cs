@@ -1403,19 +1403,14 @@ public partial class MainWindow : Window
                     break;
 
                 case nameof(MainViewModel.CurrentFocusAchievement):
-                    // Mirror the ViewModel's focus state onto an open Focus overlay; clear it when there
-                    // is no achievement to focus on (so the sample/previous data doesn't linger).
-                    if (_focusOverlay?.IsVisible == true)
+                    // Browsing with Prev/Next changes the previewed achievement on the dashboard but must
+                    // NOT push it to the on-stream Focus overlay — only Set Focus (and game changes) commit
+                    // to the overlay, via the FocusChanged event (OnFocusChanged). Here we only mirror the
+                    // *cleared* state so a stale focus doesn't linger on the overlay when there's nothing
+                    // left to focus on (e.g. a fully-mastered game).
+                    if (_focusOverlay?.IsVisible == true && _viewModel.CurrentFocusAchievement == null)
                     {
-                        if (_viewModel.CurrentFocusAchievement != null)
-                        {
-                            var focusSetName = _viewModel.HasMultipleSets ? _viewModel.SelectedSetName : null;
-                            _ = _focusOverlay.TransitionToAchievement(_viewModel.CurrentFocusAchievement, focusSetName);
-                        }
-                        else
-                        {
-                            _focusOverlay.ViewModel.ClearAchievement();
-                        }
+                        _focusOverlay.ViewModel.ClearAchievement();
                     }
                     break;
             }

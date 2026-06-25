@@ -113,7 +113,7 @@ public class RecentUnlocksViewModel : ViewModelBase
     public double ContainerCornerRadius
     {
         get => _containerCornerRadius;
-        set => SetProperty(ref _containerCornerRadius, value);
+        set { if (SetProperty(ref _containerCornerRadius, value)) OnPropertyChanged(nameof(ContainerCornerRadiusValue)); }
     }
 
     public CornerRadius ContainerCornerRadiusValue => new(_containerCornerRadius);
@@ -121,7 +121,7 @@ public class RecentUnlocksViewModel : ViewModelBase
     public double ContainerMargin
     {
         get => _containerMargin;
-        set => SetProperty(ref _containerMargin, value);
+        set { if (SetProperty(ref _containerMargin, value)) OnPropertyChanged(nameof(ContainerMarginValue)); }
     }
 
     public Thickness ContainerMarginValue => new(_containerMargin);
@@ -129,7 +129,7 @@ public class RecentUnlocksViewModel : ViewModelBase
     public double ItemSpacing
     {
         get => _itemSpacing;
-        set => SetProperty(ref _itemSpacing, value);
+        set { if (SetProperty(ref _itemSpacing, value)) OnPropertyChanged(nameof(ItemSpacingValue)); }
     }
 
     public Thickness ItemSpacingValue => new(0, 0, 0, _itemSpacing);
@@ -143,7 +143,7 @@ public class RecentUnlocksViewModel : ViewModelBase
     public double BadgeCornerRadius
     {
         get => _badgeCornerRadius;
-        set => SetProperty(ref _badgeCornerRadius, value);
+        set { if (SetProperty(ref _badgeCornerRadius, value)) OnPropertyChanged(nameof(BadgeCornerRadiusValue)); }
     }
 
     public CornerRadius BadgeCornerRadiusValue => new(_badgeCornerRadius);

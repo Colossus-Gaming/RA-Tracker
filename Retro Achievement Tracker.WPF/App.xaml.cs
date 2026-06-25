@@ -77,9 +77,10 @@ public partial class App : Application
 
         try
         {
-            // DEBUG: pin the tracked game to Final Fantasy VIII (11270) for subset testing.
-            // Remove this line to restore normal "currently playing" tracking.
-            AchievementTrackingService.DebugForceGameId = 11270;
+            // DEBUG: pin the tracked game to Guitar Hero: Warriors of Rock (34685) for subset/dropdown
+            // stress testing — 4 sets incl. a 706-achievement set. Remove this line to restore normal
+            // "currently playing" tracking.
+            AchievementTrackingService.DebugForceGameId = 34685;
 
             var mainWindow = new MainWindow();
             mainWindow.Show();

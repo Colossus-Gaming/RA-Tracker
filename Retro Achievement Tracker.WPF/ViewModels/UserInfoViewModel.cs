@@ -165,7 +165,7 @@ public class UserInfoViewModel : ViewModelBase
     public double ContainerCornerRadius
     {
         get => _containerCornerRadius;
-        set => SetProperty(ref _containerCornerRadius, value);
+        set { if (SetProperty(ref _containerCornerRadius, value)) OnPropertyChanged(nameof(ContainerCornerRadiusValue)); }
     }
 
     public CornerRadius ContainerCornerRadiusValue => new(_containerCornerRadius);
@@ -173,7 +173,7 @@ public class UserInfoViewModel : ViewModelBase
     public double ContainerMargin
     {
         get => _containerMargin;
-        set => SetProperty(ref _containerMargin, value);
+        set { if (SetProperty(ref _containerMargin, value)) OnPropertyChanged(nameof(ContainerMarginValue)); }
     }
 
     public Thickness ContainerMarginValue => new(_containerMargin);
@@ -181,7 +181,7 @@ public class UserInfoViewModel : ViewModelBase
     public double RowSpacing
     {
         get => _rowSpacing;
-        set => SetProperty(ref _rowSpacing, value);
+        set { if (SetProperty(ref _rowSpacing, value)) OnPropertyChanged(nameof(RowSpacingValue)); }
     }
 
     public Thickness RowSpacingValue => new(0, _rowSpacing / 2, 0, _rowSpacing / 2);

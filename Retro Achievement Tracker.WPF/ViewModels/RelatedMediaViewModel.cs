@@ -108,7 +108,7 @@ public class RelatedMediaViewModel : ViewModelBase
     public double ContainerCornerRadius
     {
         get => _containerCornerRadius;
-        set => SetProperty(ref _containerCornerRadius, value);
+        set { if (SetProperty(ref _containerCornerRadius, value)) OnPropertyChanged(nameof(ContainerCornerRadiusValue)); }
     }
 
     public CornerRadius ContainerCornerRadiusValue => new(_containerCornerRadius);
@@ -116,7 +116,7 @@ public class RelatedMediaViewModel : ViewModelBase
     public double ContainerMargin
     {
         get => _containerMargin;
-        set => SetProperty(ref _containerMargin, value);
+        set { if (SetProperty(ref _containerMargin, value)) OnPropertyChanged(nameof(ContainerMarginValue)); }
     }
 
     public Thickness ContainerMarginValue => new(_containerMargin);
@@ -124,7 +124,7 @@ public class RelatedMediaViewModel : ViewModelBase
     public double ImageCornerRadius
     {
         get => _imageCornerRadius;
-        set => SetProperty(ref _imageCornerRadius, value);
+        set { if (SetProperty(ref _imageCornerRadius, value)) OnPropertyChanged(nameof(ImageCornerRadiusValue)); }
     }
 
     public CornerRadius ImageCornerRadiusValue => new(_imageCornerRadius);

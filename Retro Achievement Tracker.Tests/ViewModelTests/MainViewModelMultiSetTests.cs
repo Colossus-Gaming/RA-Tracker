@@ -292,7 +292,7 @@ public class MainViewModelMultiSetTests
     #region Focus Navigation with Multi-Set Tests
 
     [Test]
-    public void FocusNavigation_WorksWithinSelectedSet()
+    public void FocusNavigation_StopsAtLastWithinSelectedSet()
     {
         // Arrange
         var game = CreateMultiSetGame();
@@ -302,19 +302,16 @@ public class MainViewModelMultiSetTests
         var coreSet = _viewModel.AvailableAchievementSets.First(s => s.SetType == AchievementSetType.Core);
         _viewModel.SelectedAchievementSet = coreSet;
 
-        var initialFocusTitle = _viewModel.FocusTitle;
-        
-        // Get count of locked achievements to verify navigation stays within set
         var lockedCount = _viewModel.LockedAchievements.Count;
 
-        // Act - navigate through all locked achievements
-        for (int i = 0; i < lockedCount; i++)
+        // Act - press Next more times than there are achievements
+        for (int i = 0; i < lockedCount + 3; i++)
         {
             _viewModel.NextFocusCommand.Execute(null);
         }
 
-        // Assert - should wrap back to first achievement
-        Assert.That(_viewModel.FocusTitle, Is.EqualTo(initialFocusTitle));
+        // Assert - no wrap-around: stays on the last achievement in the set
+        Assert.That(_viewModel.CurrentFocusIndex, Is.EqualTo(lockedCount - 1));
     }
 
     #endregion
