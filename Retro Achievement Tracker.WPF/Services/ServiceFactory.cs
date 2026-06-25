@@ -17,7 +17,6 @@ public class ServiceFactory : IDisposable
     private readonly string? _sessionUserAgent;
 
     private IMetadataService? _metadataService;
-    private IAchievementProgressProvider? _progressProvider;
     private IProgressService? _progressService;
     private AchievementTrackingService? _trackingService;
     private bool _disposed;
@@ -113,41 +112,6 @@ public class ServiceFactory : IDisposable
     }
 
     /// <summary>
-    /// Gets the achievement progress provider based on current feature flags.
-    /// </summary>
-    public IAchievementProgressProvider GetProgressProvider()
-    {
-        ThrowIfDisposed();
-
-        if (_progressProvider == null)
-        {
-            if (_featureFlags.UseV2ForProgress)
-            {
-                if (HasSessionAuth)
-                {
-                    var v2Client = new V2Client(_sessionCookies!, _sessionUserAgent!, _apiKey, logger: _logger);
-                    var v1Fallback = _featureFlags.EnableV1Fallback
-                        ? new V1AchievementProgressProvider(_username, _apiKey)
-                        : null;
-                    _progressProvider = new V2AchievementProgressProvider(v2Client, v1Fallback);
-                }
-                else
-                {
-                    _progressProvider = new V2AchievementProgressProvider(
-                        _apiKey, _username, _featureFlags.EnableV1Fallback);
-                }
-            }
-            else
-            {
-                // Use V1 directly
-                _progressProvider = new V1AchievementProgressProvider(_username, _apiKey);
-            }
-        }
-
-        return _progressProvider;
-    }
-
-    /// <summary>
     /// Gets the progress service based on current feature flags.
     /// </summary>
     /// <remarks>
@@ -208,12 +172,6 @@ public class ServiceFactory : IDisposable
             metadataDisposable.Dispose();
         }
         _metadataService = null;
-
-        if (_progressProvider is IDisposable progressDisposable)
-        {
-            progressDisposable.Dispose();
-        }
-        _progressProvider = null;
 
         if (_progressService is IDisposable progressServiceDisposable)
         {

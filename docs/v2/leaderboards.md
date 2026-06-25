@@ -1,7 +1,7 @@
 # Leaderboards
 
-`GET /api/v2/leaderboards` — list leaderboards
-`GET /api/v2/leaderboards/{id}` — get a single leaderboard
+`GET /v2/leaderboards` — list leaderboards
+`GET /v2/leaderboards/{id}` — get a single leaderboard
 
 **V1 equivalents:** `API_GetGameLeaderboards.php` ([v1](../v1/get-game-leaderboards.md)), `API_GetLeaderboardEntries.php` ([v1](../v1/get-leaderboard-entries.md))
 
@@ -36,7 +36,7 @@
 |-------------|------|--------|
 | `game` | BelongsTo | via `?include=game` |
 | `developer` | BelongsTo | via `?include=developer` |
-| `entries` | HasMany | `GET /api/v2/leaderboards/{id}/entries` |
+| `entries` | HasMany | `GET /v2/leaderboards/{id}/entries` |
 
 ## Source
 

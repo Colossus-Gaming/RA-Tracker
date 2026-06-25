@@ -109,49 +109,33 @@ public class ServiceFactoryTests
 
     #endregion
 
-    #region ProgressProvider Tests
+    #region ProgressService Tests
 
     [Test]
-    public void GetProgressProvider_WithV1Only_ReturnsV1Provider()
+    public void GetProgressService_ReturnsHybridProgressService()
     {
         // Arrange
-        var featureFlags = new FeatureFlagService(useV2ForProgress: false);
-        using var factory = new ServiceFactory(TestUsername, TestApiKey, featureFlags);
+        using var factory = new ServiceFactory(TestUsername, TestApiKey);
 
         // Act
-        var provider = factory.GetProgressProvider();
+        var service = factory.GetProgressService();
 
-        // Assert
-        Assert.That(provider, Is.InstanceOf<V1AchievementProgressProvider>());
+        // Assert - the hybrid service handles V1/V2 selection internally.
+        Assert.That(service, Is.InstanceOf<HybridProgressService>());
     }
 
     [Test]
-    public void GetProgressProvider_WithV2Enabled_ReturnsV2Provider()
+    public void GetProgressService_CalledTwice_ReturnsSameInstance()
     {
         // Arrange
-        var featureFlags = new FeatureFlagService(useV2ForProgress: true);
-        using var factory = new ServiceFactory(TestUsername, TestApiKey, featureFlags);
+        using var factory = new ServiceFactory(TestUsername, TestApiKey);
 
         // Act
-        var provider = factory.GetProgressProvider();
-
-        // Assert
-        Assert.That(provider, Is.InstanceOf<V2AchievementProgressProvider>());
-    }
-
-    [Test]
-    public void GetProgressProvider_CalledTwice_ReturnsSameInstance()
-    {
-        // Arrange
-        var featureFlags = new FeatureFlagService(useV2ForProgress: false);
-        using var factory = new ServiceFactory(TestUsername, TestApiKey, featureFlags);
-
-        // Act
-        var provider1 = factory.GetProgressProvider();
-        var provider2 = factory.GetProgressProvider();
+        var service1 = factory.GetProgressService();
+        var service2 = factory.GetProgressService();
 
         // Assert - should return cached instance
-        Assert.That(provider2, Is.SameAs(provider1));
+        Assert.That(service2, Is.SameAs(service1));
     }
 
     #endregion
@@ -162,42 +146,21 @@ public class ServiceFactoryTests
     public void ResetServices_ClearsCache_NewInstancesCreated()
     {
         // Arrange
-        var featureFlags = new FeatureFlagService(useV2ForMetadata: true, useV2ForProgress: false);
+        var featureFlags = new FeatureFlagService(useV2ForMetadata: true);
         using var factory = new ServiceFactory(TestUsername, TestApiKey, featureFlags);
 
         var metadata1 = factory.GetMetadataService();
-        var progress1 = factory.GetProgressProvider();
+        var progress1 = factory.GetProgressService();
 
         // Act
         factory.ResetServices();
 
         var metadata2 = factory.GetMetadataService();
-        var progress2 = factory.GetProgressProvider();
+        var progress2 = factory.GetProgressService();
 
         // Assert - new instances should be created after reset
         Assert.That(metadata2, Is.Not.SameAs(metadata1));
         Assert.That(progress2, Is.Not.SameAs(progress1));
-    }
-
-    [Test]
-    public void ResetServices_AllowsFeatureFlagChanges()
-    {
-        // Arrange
-        var featureFlags = new FeatureFlagService(useV2ForProgress: false);
-        using var factory = new ServiceFactory(TestUsername, TestApiKey, featureFlags);
-
-        var provider1 = factory.GetProgressProvider();
-        Assert.That(provider1, Is.InstanceOf<V1AchievementProgressProvider>());
-
-        // Change feature flag and reset
-        featureFlags.UseV2ForProgress = true;
-        factory.ResetServices();
-
-        // Act
-        var provider2 = factory.GetProgressProvider();
-
-        // Assert - new provider should be V2
-        Assert.That(provider2, Is.InstanceOf<V2AchievementProgressProvider>());
     }
 
     #endregion
@@ -213,14 +176,14 @@ public class ServiceFactoryTests
 
         // Get services to create them
         factory.GetMetadataService();
-        factory.GetProgressProvider();
+        factory.GetProgressService();
 
         // Act
         factory.Dispose();
 
         // Assert - accessing services after dispose should throw
         Assert.Throws<ObjectDisposedException>(() => factory.GetMetadataService());
-        Assert.Throws<ObjectDisposedException>(() => factory.GetProgressProvider());
+        Assert.Throws<ObjectDisposedException>(() => factory.GetProgressService());
     }
 
     [Test]

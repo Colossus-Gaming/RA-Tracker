@@ -1,6 +1,6 @@
 # Player Games
 
-`GET /api/v2/users/{user}/player-games` — list a user's game library
+`GET /v2/users/{user}/player-games` — list a user's game library
 
 This resource is only accessible as a relationship endpoint on Users. There is no standalone index.
 
@@ -45,7 +45,7 @@ This resource is only accessible as a relationship endpoint on Users. There is n
 To get a user's games with per-subset progress:
 
 ```
-GET /api/v2/users/{user}/player-games?include=playerAchievementSets
+GET /v2/users/{user}/player-games?include=playerAchievementSets
 ```
 
 ## Source

@@ -1,7 +1,7 @@
 # Achievements
 
-`GET /api/v2/achievements` — list achievements
-`GET /api/v2/achievements/{id}` — get a single achievement
+`GET /v2/achievements` — list achievements
+`GET /v2/achievements/{id}` — get a single achievement
 
 **V1 equivalents:** `API_GetAchievementCount.php` ([v1](../v1/get-achievement-count.md)), `API_GetAchievementUnlocks.php` ([v1](../v1/get-achievement-unlocks.md))
 

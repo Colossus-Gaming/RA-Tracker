@@ -1,7 +1,7 @@
 # Games
 
-`GET /api/v2/games` — list games
-`GET /api/v2/games/{id}` — get a single game
+`GET /v2/games` — list games
+`GET /v2/games/{id}` — get a single game
 
 **V1 equivalents:** `API_GetGame.php` ([v1](../v1/get-game.md)), `API_GetGameExtended.php` ([v1](../v1/get-game-extended.md)), `API_GetGameList.php` ([v1](../v1/get-game-list.md))
 

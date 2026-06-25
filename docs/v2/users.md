@@ -1,7 +1,7 @@
 # Users
 
-`GET /api/v2/users` — list users (default sort: `pointsHardcore` descending)
-`GET /api/v2/users/{identifier}` — get a single user
+`GET /v2/users` — list users (default sort: `pointsHardcore` descending)
+`GET /v2/users/{identifier}` — get a single user
 
 The `{identifier}` accepts ULID, display_name, or username. ULID is the preferred stable identifier.
 
@@ -43,10 +43,16 @@ The `{identifier}` accepts ULID, display_name, or username. ULID is the preferre
 
 | Relationship | Type | Access |
 |-------------|------|--------|
-| `playerGames` | HasMany | `GET /api/v2/users/{id}/player-games` |
-| `playerAchievementSets` | HasMany | `GET /api/v2/users/{id}/player-achievement-sets` |
+| `playerGames` | HasMany | `GET /v2/users/{id}/player-games` |
+| `playerAchievementSets` | HasMany | `GET /v2/users/{id}/player-achievement-sets` |
+| `playerAchievements` | HasMany | `GET /v2/users/{id}/player-achievements` (#4633) — see [player-achievements.md](player-achievements.md) |
+| `awards` | HasMany | `GET /v2/users/{id}/awards` (#4765) — see [user-awards.md](user-awards.md) |
+| `achievementSetClaims` | HasMany | `GET /v2/users/{id}/achievement-set-claims` (#4865) — see [achievement-set-claims.md](achievement-set-claims.md) |
+| `wallComments` | HasMany | `GET /v2/users/{id}/wall-comments` (#4818) — see [comments.md](comments.md) |
 
 These relationships cannot be eager-loaded via `?include=` — they must be accessed through their dedicated relationship endpoints.
+
+> `following` / `followers` are defined in source but **not yet deployed** (PR [#5011](https://github.com/RetroAchievements/RAWeb/pull/5011) open). The v2 user resource carries **no numeric rank and no last-game id** — rank comes from v1 (`API_GetUserSummary`).
 
 ## Source
 

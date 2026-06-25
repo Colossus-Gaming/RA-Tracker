@@ -8,6 +8,22 @@ The v2 API is a JSON:API-compliant web API built on Laravel, live in production.
 
 **Spec:** [JSON:API 1.1](https://jsonapi.org/)
 
+## How v2 is shipped (no pinnable version)
+
+RAWeb is continuous-deploy off `master`; its GitHub **Releases are CalVer deploy snapshots** (e.g. `2026.06.25`), not API version contracts — there is no frozen/pinnable v2 contract. Track the route/schema source on `master` (`app/Api/RouteServiceProvider.php`, `app/Api/V2/**/*Resource.php`) and the **draft** OpenAPI spec (RetroAchievements/api-docs PR #100, still open). `api-docs.retroachievements.org` documents **v1 only**, and the official `@retroachievements/api` (JS) + `api-python` wrappers are still v1-only — so there is no released/documented v2 contract to validate against; the docs here are reconstructed from source.
+
+## What still requires V1
+
+v2 does **not** expose these, so this app keeps three v1 calls (verified against RAWeb `master`, 2026-06-25):
+
+| Need | Why v2 can't supply it | V1 call retained |
+|------|------------------------|------------------|
+| User **rank** (numeric site rank) | the v2 `users` resource has only `isUnranked` (bool); no numeric rank on any resource | `API_GetUserSummary` / `API_GetUserRankAndScore` |
+| Game **publisher / developer / genre** | not on the v2 `games` resource (modeled internally as hubs, no structured field/relationship) | `API_GetGameExtended` / `API_GetGame` |
+| Core achievement list **+ unlock status in one call** | v2 splits definitions (`achievements`) from unlocks (`player-achievements`) | `API_GetGameInfoAndUserProgress` |
+
+Everything else (systems, games, achievement sets/subsets, leaderboards, hubs, per-set player progress, player-achievements, awards) runs on v2.
+
 ## Authentication
 
 V2 supports three authentication methods (all equivalent):
@@ -43,18 +59,20 @@ All collection endpoints support:
 |----------|-------|------|----------------------|-----|
 | Systems | Yes | Yes | — | [systems.md](systems.md) |
 | Games | Yes | Yes | — | [games.md](games.md) |
-| Users | Yes | Yes | player-games, player-achievement-sets | [users.md](users.md) |
+| Users | Yes | Yes | player-games, player-achievement-sets, player-achievements, awards, achievement-set-claims, wall-comments | [users.md](users.md) |
 | Achievement Sets | — | Yes | — | [achievement-sets.md](achievement-sets.md) |
-| Achievements | Yes | Yes | — | [achievements.md](achievements.md) |
+| Achievements | Yes | Yes | player-achievements, comments | [achievements.md](achievements.md) |
 | Leaderboards | Yes | Yes | entries | [leaderboards.md](leaderboards.md) |
 | Leaderboard Entries | — | Yes | — | [leaderboard-entries.md](leaderboard-entries.md) |
 | Hubs | Yes | Yes | games, links | [hubs.md](hubs.md) |
+| Events | Yes | Yes | — | [events.md](events.md) |
 | Player Games | — | — | via users | [player-games.md](player-games.md) |
 | Player Achievement Sets | — | — | via users | [player-achievement-sets.md](player-achievement-sets.md) |
+| Player Achievements | Yes | — | via users, via achievements | [player-achievements.md](player-achievements.md) |
+| Achievement Set Claims | Yes | — | via games, via users | [achievement-set-claims.md](achievement-set-claims.md) |
+| User Awards | — | — | via users | [user-awards.md](user-awards.md) |
+| Comments | — | — | via games, achievements, users (wall) | [comments.md](comments.md) |
 | Game Hashes | — | — | via games (merged #4593) | [game-hashes.md](game-hashes.md) |
-| Player Achievements | Yes | — | via users, via achievements | see [README delta](#development-timeline) (#4633) |
-| Achievement Set Claims | Yes | — | via games, via users | see [README delta](#development-timeline) (#4865) |
-| User Awards | — | — | via users | see [README delta](#development-timeline) (#4765) |
 
 ## Subset Model
 
@@ -71,7 +89,7 @@ Game
 - To get per-subset progress for a user on a game:
 
 ```
-GET /api/v2/users/{user}/player-achievement-sets?filter[gameId]={gameId}&include=achievementSet
+GET /v2/users/{user}/player-achievement-sets?filter[gameId]={gameId}&include=achievementSet
 ```
 
 See [achievement-sets.md](achievement-sets.md) and [player-achievement-sets.md](player-achievement-sets.md) for details.
@@ -81,7 +99,7 @@ See [achievement-sets.md](achievement-sets.md) and [player-achievement-sets.md](
 | Aspect | V1 | V2 |
 |--------|----|----|
 | Response format | Flat JSON | JSON:API (`data`, `attributes`, `relationships`, `links`, `meta`) |
-| Base URL | `/API/API_*.php` | `/api/v2/{resource}` |
+| Base URL | `/API/API_*.php` | `/v2/{resource}` (on the `api.` subdomain; server self-links use the `/api/v2` alias) |
 | Auth transport | `?y={apiKey}` query param | `X-API-Key` header or `Bearer` token |
 | Content-Type | `application/json` | `application/vnd.api+json` |
 | User identity | Username (mutable) | ULID (stable); username/display_name lookup supported |

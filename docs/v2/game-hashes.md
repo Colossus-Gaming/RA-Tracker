@@ -1,6 +1,6 @@
 # Game Hashes
 
-`GET /api/v2/games/{game}/hashes` — list hashes for a game
+`GET /v2/games/{game}/hashes` — list hashes for a game
 
 This resource is only accessible as a relationship endpoint on Games. There is no standalone index.
 

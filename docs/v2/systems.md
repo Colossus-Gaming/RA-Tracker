@@ -1,7 +1,7 @@
 # Systems
 
-`GET /api/v2/systems` — list all systems
-`GET /api/v2/systems/{id}` — get a single system
+`GET /v2/systems` — list all systems
+`GET /v2/systems/{id}` — get a single system
 
 **V1 equivalent:** `API_GetConsoleIDs.php` ([v1 docs](../v1/get-console-ids.md))
 

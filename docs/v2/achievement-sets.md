@@ -1,6 +1,6 @@
 # Achievement Sets
 
-`GET /api/v2/achievement-sets/{id}` — get a single achievement set (show only, no index)
+`GET /v2/achievement-sets/{id}` — get a single achievement set (show only, no index)
 
 **No v1 equivalent.** This is an entirely new resource that enables subset support.
 
@@ -51,7 +51,7 @@ Subset backing games are forcibly excluded from both the `gameIds` attribute and
 To discover all achievement sets for a game:
 
 ```
-GET /api/v2/games/{gameId}?include=achievementSets
+GET /v2/games/{gameId}?include=achievementSets
 ```
 
 The included `achievementSets` will each have their contextual `type` populated (Base, Bonus, Specialty, or Exclusive).

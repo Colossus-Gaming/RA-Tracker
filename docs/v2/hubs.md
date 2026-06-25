@@ -1,7 +1,7 @@
 # Hubs
 
-`GET /api/v2/hubs` — list hubs
-`GET /api/v2/hubs/{id}` — get a single hub
+`GET /v2/hubs` — list hubs
+`GET /v2/hubs/{id}` — get a single hub
 
 **No v1 equivalent.** Hubs are an entirely new resource backed by the `GameSet` model.
 
@@ -29,8 +29,8 @@
 
 | Relationship | Type | Access |
 |-------------|------|--------|
-| `games` | BelongsToMany | `GET /api/v2/hubs/{id}/games` (paginated) |
-| `links` | BelongsToMany | `GET /api/v2/hubs/{id}/links` (self-referential, paginated) |
+| `games` | BelongsToMany | `GET /v2/hubs/{id}/games` (paginated) |
+| `links` | BelongsToMany | `GET /v2/hubs/{id}/links` (self-referential, paginated) |
 
 These relationships cannot be accessed via `?include=` (returns 400). Use the dedicated relationship endpoints.
 

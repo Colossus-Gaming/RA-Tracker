@@ -1,7 +1,7 @@
 # Leaderboard Entries
 
-`GET /api/v2/leaderboards/{leaderboard}/entries` — list entries for a leaderboard
-`GET /api/v2/leaderboard-entries/{id}` — get a single entry
+`GET /v2/leaderboards/{leaderboard}/entries` — list entries for a leaderboard
+`GET /v2/leaderboard-entries/{id}` — get a single entry
 
 Entries are primarily accessed through the leaderboard relationship endpoint.
 

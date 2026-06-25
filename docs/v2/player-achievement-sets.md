@@ -1,6 +1,6 @@
 # Player Achievement Sets
 
-`GET /api/v2/users/{user}/player-achievement-sets` — list a user's per-set progress
+`GET /v2/users/{user}/player-achievement-sets` — list a user's per-set progress
 
 This resource is only accessible as a relationship endpoint on Users. There is no standalone index.
 
@@ -49,7 +49,7 @@ The `setContext` array tells you whether the set is Core (Base), Bonus, Specialt
 ### Get per-subset progress for a specific game
 
 ```
-GET /api/v2/users/{user}/player-achievement-sets?filter[gameId]={gameId}&include=achievementSet
+GET /v2/users/{user}/player-achievement-sets?filter[gameId]={gameId}&include=achievementSet
 ```
 
 Returns individual progress records for each set (Core, Bonus, subsets) the user has interacted with for that game.
@@ -57,7 +57,7 @@ Returns individual progress records for each set (Core, Bonus, subsets) the user
 ### Get all recent achievement set activity
 
 ```
-GET /api/v2/users/{user}/player-achievement-sets?sort=-lastUnlockAt&page[size]=10
+GET /v2/users/{user}/player-achievement-sets?sort=-lastUnlockAt&page[size]=10
 ```
 
 ### Subset notification use case
