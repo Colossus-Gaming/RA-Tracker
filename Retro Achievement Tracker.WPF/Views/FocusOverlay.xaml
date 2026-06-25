@@ -5,8 +5,9 @@ xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 xmlns:controls="clr-namespace:RATracker.WPF.Controls"
 xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
+xmlns:converters="clr-namespace:RATracker.WPF.Converters"
 mc:Ignorable="d"
-        Title="Focus Overlay" 
+        Title="Focus Overlay"
         Width="{Binding WindowWidth, Mode=TwoWay}" 
         Height="{Binding WindowHeight, Mode=TwoWay}"
         WindowStyle="None"
@@ -20,7 +21,8 @@ mc:Ignorable="d"
     <Window.Resources>
         <!-- Visibility Converter -->
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        
+        <converters:StringToImageSourceConverter x:Key="StringToImageSource"/>
+
         <!-- Easing Functions -->
         <CubicEase x:Key="EaseOut" EasingMode="EaseOut"/>
         <BackEase x:Key="BackEaseOut" EasingMode="EaseOut" Amplitude="0.3"/>
@@ -232,8 +234,8 @@ mc:Ignorable="d"
                 </Border.Style>
                 
                 <Image x:Name="Badge"
-                       Source="{Binding BadgeUri}"
-                       Width="{Binding BadgeSize}" 
+                       Source="{Binding BadgeUri, Converter={StaticResource StringToImageSource}}"
+                       Width="{Binding BadgeSize}"
                        Height="{Binding BadgeSize}"
                        Stretch="UniformToFill"/>
             </Border>

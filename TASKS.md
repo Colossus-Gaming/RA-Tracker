@@ -279,7 +279,10 @@ Investigated RAWeb source ([`app/Api/RouteServiceProvider.php`](https://github.c
 
 **Notes:**
 - **DEBUG toggle in place:** `AchievementTrackingService.DebugForceGameId` is set to `11270` (Final Fantasy VIII) in `App.OnStartup` to pin the tracked game for subset testing. It defaults to `0` (normal "currently playing"); tests leave it at 0. **Remove the `App.OnStartup` line to restore live tracking.**
-- Focus overlay window sizing review is the next task (compare against the legacy project's focus window).
+
+| Task | Status | Code | Attempts |
+|------|--------|------|----------|
+| Focus overlay sizing (vs legacy window) | done | `ViewModels/FocusViewModel.cs` | Compared against the legacy WinForms/HTML focus window (`Forms/FocusWindow.cs` was a fixed 700×165 banner, 140 badge, text auto-fit via textFit). New WPF defaults were already 700×175/140 but the user's saved size had drifted to 1440×789 (tiny text in a huge box). Set a 1400×350 banner (2× the legacy 700×175, ~4:1 ratio): badge 280, fonts 52/72/32/40, spacing 2×. Updated field defaults + `ResetLayoutToDefaults` + saved settings.json; verified live (Focus overlay renders proportionally). |
 
 ---
 

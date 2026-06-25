@@ -22,22 +22,24 @@ public class FocusViewModel : ViewModelBase
     private string _badgeUri = string.Empty;
     private bool _isMasteryMode;
 
-    // Layout settings (defaults, will be overwritten by settings)
-    private double _windowWidth = 700;
-    private double _windowHeight = 175;
-    private double _badgeSize = 140;
-    private double _badgeCornerRadius = 5;
-    private double _containerCornerRadius = 8;
-    private double _containerMargin = 5;
-    private double _contentSpacing = 15;
-    private double _lineHeight = 4;
-    private double _lineMargin = 8;
+    // Layout settings (defaults, will be overwritten by settings).
+    // A 2x scale of the legacy 700x175 banner (700x165 + 140 badge in the old WinForms overlay),
+    // keeping the ~4:1 banner proportions so the badge/fonts scale with the larger window.
+    private double _windowWidth = 1400;
+    private double _windowHeight = 350;
+    private double _badgeSize = 280;
+    private double _badgeCornerRadius = 10;
+    private double _containerCornerRadius = 16;
+    private double _containerMargin = 10;
+    private double _contentSpacing = 30;
+    private double _lineHeight = 8;
+    private double _lineMargin = 16;
 
-    // Font sizes
-    private double _titleFontSize = 26;
-    private double _pointsFontSize = 36;
-    private double _descriptionFontSize = 16;
-    private double _masteryInfoFontSize = 20;
+    // Font sizes (2x the legacy banner)
+    private double _titleFontSize = 52;
+    private double _pointsFontSize = 72;
+    private double _descriptionFontSize = 32;
+    private double _masteryInfoFontSize = 40;
 
     // Element visibility
     private bool _showBadge = true;
@@ -824,20 +826,21 @@ public class FocusViewModel : ViewModelBase
     /// </summary>
     public void ResetLayoutToDefaults()
     {
-        // Reset all values - each setter will save to settings
-        WindowWidth = 700;
-        WindowHeight = 175;
-        BadgeSize = 140;
-        BadgeCornerRadius = 5;
-        ContainerCornerRadius = 8;
-        ContainerMargin = 5;
-        ContentSpacing = 15;
-        LineHeight = 4;
-        LineMargin = 8;
-        TitleFontSize = 26;
-        PointsFontSize = 36;
-        DescriptionFontSize = 16;
-        MasteryInfoFontSize = 20;
+        // Reset all values - each setter will save to settings.
+        // Large banner (2x the legacy 700x175 layout); see field defaults above.
+        WindowWidth = 1400;
+        WindowHeight = 350;
+        BadgeSize = 280;
+        BadgeCornerRadius = 10;
+        ContainerCornerRadius = 16;
+        ContainerMargin = 10;
+        ContentSpacing = 30;
+        LineHeight = 8;
+        LineMargin = 16;
+        TitleFontSize = 52;
+        PointsFontSize = 72;
+        DescriptionFontSize = 32;
+        MasteryInfoFontSize = 40;
         ShowBadge = true;
         ShowTitle = true;
         ShowLine = true;

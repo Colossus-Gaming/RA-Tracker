@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
+        xmlns:converters="clr-namespace:RATracker.WPF.Converters"
         mc:Ignorable="d"
         Title="Achievement List Overlay"
         Width="{Binding WindowWidth, Mode=TwoWay}"
@@ -18,7 +19,8 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        
+        <converters:StringToImageSourceConverter x:Key="StringToImageSource"/>
+
         <!-- Easing Functions -->
         <CubicEase x:Key="EaseOut" EasingMode="EaseOut"/>
         <BackEase x:Key="BackEaseOut" EasingMode="EaseOut" Amplitude="0.3"/>
@@ -246,8 +248,8 @@
                                     <ToolTip Template="{StaticResource AchievementTooltipTemplate}"/>
                                 </Border.ToolTip>
                                 
-                                <!-- Badge Image -->
-                                <Image Source="{Binding BadgeUri}"
+                                <!-- Badge Image (via safe converter: bad/empty URIs -> null, never throw) -->
+                                <Image Source="{Binding BadgeUri, Converter={StaticResource StringToImageSource}}"
                                        Width="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                        Height="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                        Stretch="UniformToFill"

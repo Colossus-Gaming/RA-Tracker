@@ -6,6 +6,7 @@ xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 xmlns:controls="clr-namespace:RATracker.WPF.Controls"
 xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
 xmlns:views="clr-namespace:RATracker.WPF.Views"
+xmlns:converters="clr-namespace:RATracker.WPF.Converters"
 mc:Ignorable="d"
 Title="Recent Unlocks Overlay"
         Width="{Binding WindowWidth, Mode=TwoWay}"
@@ -20,7 +21,8 @@ Title="Recent Unlocks Overlay"
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        
+        <converters:StringToImageSourceConverter x:Key="StringToImageSource"/>
+
         <!-- Date Converter (multi-value for timezone support) -->
         <views:DateEarnedConverter x:Key="DateEarnedConverter"/>
         
@@ -118,7 +120,7 @@ Title="Recent Unlocks Overlay"
                                         CornerRadius="{Binding DataContext.BadgeCornerRadiusValue, RelativeSource={RelativeSource AncestorType=Window}}"
                                         ClipToBounds="True"
                                         Margin="0,0,10,0">
-                                    <Image Source="{Binding BadgeUri}"
+                                    <Image Source="{Binding BadgeUri, Converter={StaticResource StringToImageSource}}"
                                            Width="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                            Height="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                            Stretch="UniformToFill"/>

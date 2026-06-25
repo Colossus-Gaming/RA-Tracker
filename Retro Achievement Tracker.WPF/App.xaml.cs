@@ -39,6 +39,21 @@ public partial class App : Application
             }
         }
 
+        // Global crash logging: capture unhandled exceptions from the UI dispatcher, background
+        // threads, and faulted tasks so they land in the log instead of silently killing the app.
+        DispatcherUnhandledException += (_, args) =>
+        {
+            LogExceptionChain("DispatcherUnhandledException", args.Exception);
+            args.Handled = true; // keep the app alive instead of crashing
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            LogExceptionChain("AppDomain.UnhandledException", args.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            LogExceptionChain("UnobservedTaskException", args.Exception);
+            args.SetObserved();
+        };
+
         // --probe-v2 "<path1>;<path2>": GET raw v2 endpoints with the saved API key and log the bodies,
         // then exit. Diagnostic tool for discovering live JSON:API response shapes (no login needed).
         var probeIdx = Array.IndexOf(args, "--probe-v2");
@@ -84,6 +99,20 @@ public partial class App : Application
                 depth++;
             }
             throw;
+        }
+    }
+
+    private static void LogExceptionChain(string source, Exception? ex)
+    {
+        Debug.WriteLine($"[CRASH] {source}: {ex?.GetType().FullName}: {ex?.Message}");
+        var current = ex;
+        int depth = 0;
+        while (current != null)
+        {
+            Debug.WriteLine($"[CRASH]   depth {depth} {current.GetType().FullName}: {current.Message}");
+            Debug.WriteLine($"[CRASH]   stack: {current.StackTrace}");
+            current = current.InnerException;
+            depth++;
         }
     }
 
