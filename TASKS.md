@@ -17,24 +17,26 @@ This file tracks feature requests, bug fixes, and research tasks for the RetroAc
 
 > As a user, I want to see different notifications for Core vs Bonus vs Specialty vs Exclusive achievements so I can visually distinguish which set an unlock belongs to during a stream.
 
-**Status:** backlog
+**Status:** in-progress
 **Created:** 2026-02-27
+**Updated:** 2026-06-24
 **Plan:** [subset-notifications-plan.md](docs/plans/subset-notifications-plan.md)
 
 | Phase | Task | Status | Docs | Code | Attempts |
 |-------|------|--------|------|------|----------|
-| 1 | Extend Achievement model with SetType, SetId, SetName | backlog | [achievement-sets (v2)](docs/v2/achievement-sets.md), [achievements (v2)](docs/v2/achievements.md) | `Models/Achievement.cs`, `Models/AchievementSet.cs` | — |
-| 2 | Add sub-set notification properties to AlertsViewModel | backlog | [player-achievement-sets (v2)](docs/v2/player-achievement-sets.md) | `ViewModels/AlertsViewModel.cs` | — |
-| 3 | Update AlertsOverlay for sub-set handling | backlog | — | `Views/AlertsOverlay.xaml`, `Views/AlertsOverlay.xaml.cs` | — |
-| 4 | Update MainViewModel event routing | backlog | — | `ViewModels/MainViewModel.cs` | — |
-| 5 | Add AppSettings persistence for sub-set prefs | backlog | — | `Models/AppSettings.cs` | — |
-| 6 | Wire MainWindow to AlertsOverlay | backlog | — | `MainWindow.xaml.cs` | — |
-| 7 | Add UI for sub-set notification settings | backlog | — | `MainWindow.xaml` | — |
+| 1 | Extend Achievement model with SetType, SetId, SetName | done | [achievement-sets (v2)](docs/v2/achievement-sets.md), [achievements (v2)](docs/v2/achievements.md) | `Models/Achievement.cs`, `Models/AchievementSet.cs` | Model already carried the fields. |
+| 2 | Tag achievements with set membership in the API mapping pipeline | done | [v2-status](docs/guides/v2-status.md) | `Services/V2ProgressService.cs` | 2026-05-29: `MapToUserGameProgress` now reads each set's achievements, tags SetId/SetType/SetName, and falls back to a flat list when no sets are returned. |
+| 3 | Group tagged achievements into real per-set lists (remove core-only stub) | done | — | `Services/AchievementTrackingService.cs` | 2026-05-29: `CreateGameInfoFromProgress` groups by SetId; removed `IsAchievementInSet` stub that dumped everything into Core. |
+| 4 | Per-subset notification routing (set name shown on Focus/Alerts) | done | — | `ViewModels/FocusViewModel.cs`, `ViewModels/MainViewModel.cs` | Set name flows to Focus/Alerts via `SelectedSetName`; test alert commands cover Core + subset. |
+| 5 | Distinct visual treatment per set type in AlertsOverlay | done | — | `ViewModels/AlertsViewModel.cs`, `Views/AlertsOverlay.xaml` | 2026-06-24: `AlertsViewModel` now carries `SetType`/`SetName` and exposes `EffectiveBorderColor` (per-set accent: Bonus=amethyst, Specialty=sky, Exclusive=red, Challenge=amber) + a corner `SetBadge` ("BONUS"/"SPECIALTY"/…). Core/Unknown keep the standard look; mastery clears any stale subset accent. 10 new tests in `ViewModelTests/AlertsViewModelSubsetTests.cs`; 301 unit tests pass. |
+| 6 | AppSettings persistence for sub-set notification prefs + settings UI | backlog | — | `Models/AppSettings.cs`, `MainWindow.xaml` | Opt-in per-set toggles + per-set accent overrides not yet added. Phase-5 accents are currently hard-coded defaults; phase 6 should make them configurable and add an opt-in toggle. |
 
 **Notes:**
-- V2 API now provides `PlayerAchievementSet` resource for per-subset progress — see [v2-status](docs/guides/v2-status.md).
-- Query pattern: `GET /api/v2/users/{user}/player-achievement-sets?filter[gameId]={id}&include=achievementSet`
-- Feature is opt-in (disabled by default). Achievements without SetType default to Core.
+- **API delta research (2026-06-24):** Re-surveyed the v2 API since the 2026-05-29 verification (see [v2/README.md](docs/v2/README.md) timeline). Net for subsets: **no structural change required** — phase 5 shipped with the existing data. New since baseline: `PlayerAchievement` ([#4633](https://github.com/RetroAchievements/RAWeb/pull/4633), merged 2026-03-26) adds per-set *unlock* filtering (`filter[achievementSetId]`, `filter[unlockedFrom/To]`) → see STORY-011. The core gap is **still open**: no per-set achievement *definition* listing (`/games/{id}/achievements`, `/achievement-sets/{id}/achievements`, `filter[achievementSetId]` on the bare `/achievements` index all 404/400). `AchievementSetVersion` ([#4979](https://github.com/RetroAchievements/RAWeb/pull/4979)) is OPEN — watch for merge.
+- The blocking gap (no per-achievement set membership through the pipeline) is now resolved; achievements carry `SetId`/`SetType`/`SetName` end-to-end on the V2 path.
+- **Public-API reality (2026-05-29 research):** the **v1** Web API exposes *no* subset model — subsets are separate game IDs linked via a "Subsets" hub. Subset tracking therefore depends on the session-gated **v2** path; on V1 fallback a game collapses to a single (Core) set. See [v2-status](docs/guides/v2-status.md).
+- Query pattern (v2): `GET /api/v2/users/{user}/player-achievement-sets?filter[gameId]={id}&include=achievementSet`
+- Verify the live v2 response shape with env-var creds + API logging (see STORY-007); the mapper is defensive about field names because the v2 contract is not publicly published.
 
 ---
 
@@ -143,9 +145,154 @@ FlaUI.UIA3 tests that launch the WPF app, interact via Windows UI Automation (no
 
 ---
 
+### STORY-007: Environment-Variable Credentials
+
+> As a developer, I want to supply my username, Web API key, and password via environment variables so I can keep testing v2 without re-entering credentials in the UI.
+
+**Status:** done
+**Created:** 2026-05-29
+**Completed:** 2026-05-29
+
+Reads `RA_USERNAME`, `RA_API_KEY`, `RA_PASSWORD`. When a variable is set (non-empty), it takes precedence over the settings file; values are kept in memory only and never persisted. Used by both the app and the test suite.
+
+| Task | Status | Code | Attempts |
+|------|--------|------|----------|
+| Add `EnvironmentCredentials` helper | done | `Services/EnvironmentCredentials.cs` | RA_USERNAME / RA_API_KEY / RA_PASSWORD, trimmed, blank treated as unset. |
+| Apply env override in ViewModel load | done | `ViewModels/MainViewModel.cs` | `ApplyEnvironmentCredentialOverrides()` runs inside the settings-loading phase (no persistence). |
+| Populate PasswordBox from env-provided password | done | `MainWindow.xaml.cs` | `RestorePasswordToPasswordBox` prefers the ViewModel password (env or settings). |
+| Tests | done | `ServiceTests/EnvironmentCredentialsTests.cs`, `ViewModelTests/MainViewModelEnvironmentTests.cs` | Save/restore process env vars; assert precedence + CanStart. |
+
+---
+
+### STORY-008: Test Suite Overhaul
+
+> As a developer, I want the unit tests to exercise the real app code (not duplicate stand-ins) and to all pass, so I can develop confidently.
+
+**Status:** done
+**Created:** 2026-05-29
+**Completed:** 2026-05-29
+
+| Task | Status | Code | Attempts |
+|------|--------|------|----------|
+| Fix 6 stale failing tests | done | `V2ApiTests/ServiceFactoryTests.cs`, `V2ApiTests/ProgressServiceTests.cs`, `ViewModelTests/MainViewModelMultiSetTests.cs` | FeatureFlag defaults now V2-on; API key optional; mastery via list fallback; clean-construct ViewModel. |
+| Delete legacy duplicate-model tests | done | (removed) `ModelsAndServicesTests.cs` | It tested fake copies of the models + nonexistent `CredentialProtector`/`NotificationRequest`. |
+| Add real-model + service + converter tests | done | `ModelTests/*`, `ServiceTests/*`, `ConverterTests/*`, `V2ApiTests/V2ProgressServiceSubsetTests.cs` | Subset grouping, env creds, DPAPI encryption, converters, progress fallback. |
+| Add `MainViewModel(bool loadSampleData)` for deterministic VM tests | done | `ViewModels/MainViewModel.cs` | Tests skip placeholder sample data. |
+
+**Baseline:** 278 unit tests pass (`Category!=Integration`); FlaUI launch smoke test passes.
+
+---
+
+### STORY-009: Make Live Data Actually Flow (v1 mapping + window UX)
+
+> As a user, I want the app to actually populate with my real data and behave like normal windows, because nothing was wiring up.
+
+**Status:** done
+**Created:** 2026-05-29
+**Completed:** 2026-05-29
+
+Live testing revealed two blockers. **(1) Every `/api/v2/*` endpoint returns 404** — v2 isn't publicly deployed — so the app relies entirely on v1. **(2)** The v1 client deserialized JSON straight into domain models whose names didn't match (`GameID`≠`Id`, `User`≠`UserName`), and game-progress returns achievements as a dictionary — producing a blank username and current game id `0`, which broke the whole poll.
+
+| Task | Status | Code | Attempts |
+|------|--------|------|----------|
+| Diagnose via automated launch→login→poll→log harness | done | settings `autoStart`+`enableApiLogging` | Confirmed v2 404 on all endpoints; v1 returned game id 0 / blank user. |
+| Build v1 DTO + mapper layer (real field names, badge URLs, dict achievements) | done | `Http/V1/V1ApiModels.cs` | DTOs match captured `docs/testing/*.json`. |
+| Rewire V1 client/service through the mapper | done | `Services/HybridProgressService.cs` | Now: `RetroS3xual` / game `10268` / overlays populated. |
+| Window UX: taskbar + movable + not force-topmost | done | `Views/*Overlay.xaml(.cs)` | `ShowInTaskbar=True`; drag ungated on Focus/Alerts; removed Topmost↔PositionMode coupling. |
+| Immediate first poll + clear placeholder + auto-launch on manual Start | done | `ViewModels/MainViewModel.cs`, `MainWindow.xaml.cs` | |
+| Tests for v1 mapping | done | `V1ApiTests/V1MapperTests.cs` | 7 tests against real shapes. |
+
+**Note:** the v2 404s in this story were later traced to the wrong host/prefix — see STORY-010. v2 is live.
+
+---
+
+### STORY-010: Wire Up the Real v2 API (api. subdomain)
+
+> As a user, I want the app to actually use the live v2 API, not just fall back to v1.
+
+**Status:** done
+**Created:** 2026-05-29
+**Completed:** 2026-05-29
+
+Investigated RAWeb source ([`app/Api/RouteServiceProvider.php`](https://github.com/RetroAchievements/RAWeb/blob/master/app/Api/RouteServiceProvider.php)) + live probing. The "v2 is 404/DOA" conclusion was wrong — the app was calling the wrong host/prefix.
+
+| Task | Status | Code | Attempts |
+|------|--------|------|----------|
+| Fix base URL to `api.retroachievements.org/v2` | done | `Http/V2/V2Client.cs` | Was `retroachievements.org/api/v2` (404). Now 200. |
+| Fix routes: `player-games`, `player-achievements`; drop `/progress`; drop nested `game.system` include | done | `Services/V2ProgressService.cs` | Verified live: user/recent/current-game all 200. |
+| Read game id from `game` relationship (player-games id is a record id) | done | `V2ResourceMapper`/`V2ProgressService` | Fixed "current game 7557786 → 10268". |
+| Map `player-achievements` shape (`unlockedAt`, achievement relationship) + user `pointsHardcore` | done | `Services/V2ProgressService.cs`, `Http/V2/Mappers/V2ResourceMapper.cs` | |
+| Hybrid: v2 for user/recent/current-game/sets, v1 for full per-game achievement list | done | `Services/V2ProgressService.cs` (returns null when no achievements → v1 fallback) | |
+| Add response-body diagnostic logging; update tests + docs | done | `Http/V2/V2Client.cs`, `V2ApiTests/*`, `docs/v2/*`, `docs/guides/v2-status.md` | 285 tests pass. |
+
+**Follow-on (2026-05-29, same day):** Probed RAWeb shapes to make this efficient.
+- Discovered `/v2/games/{id}/achievements` and `/v2/achievement-sets/{id}/achievements` both **404** — v2 has no single-call source for "all achievements of a game." v1 `GetGameInfoAndUserProgress` is therefore the efficient per-game achievement list.
+- Rewired `HybridProgressService.GetUserGameProgressAsync` to **v1 (achievement list) + v2 `player-achievement-sets` (subset aggregates) in parallel**; removed the wasteful v2 `player-games?filter[gameId]` call (always empty achievements).
+- Added `V2ProgressService.GetPlayerAchievementSetsAsync` which maps `setContext.type` → SetType and the included `achievement-set.achievementsPublished` → totals.
+- Fixed v2 ISO timestamp parsing to honor `Z` (`DateTimeStyles.RoundtripKind`).
+- Added a reusable v2 shape probe: `--probe-v2 "<paths;...>"` (no login required).
+- 287 tests pass.
+
+**Multiset wiring completed (same day, after further probing):** Discovered `filter[achievementSetId]` is **rejected (400)** — but `/v2/achievements?filter[gameId]&include=achievementSet&page[size]=100` returns every game achievement with its set membership in **one call**. `V2ProgressService.GetGameAchievementsWithSetsAsync` uses it; `HybridProgressService` phase 2 now makes **one** call regardless of non-core set count (was N), filters to non-core, and applies unlock dates from the phase-1 unlocks map. Achievements end up tagged with `SetId`/`SetType`/`SetName`; the existing `CreateGameInfoFromProgress` grouping then populates `GameInfo.AchievementSets` for the multi-set UI. Net: **4 calls single-set, 5 calls multiset (independent of set count).** 288 tests pass.
+
+---
+
+### STORY-011: Per-Set Incremental Unlock Feed (v2 PlayerAchievement)
+
+> As a streamer, I want the tracker to detect new unlocks per subset efficiently so multiset games stay responsive and correctly attributed without re-pulling the whole game's unlocks each poll.
+
+**Status:** in-progress
+**Created:** 2026-06-24
+**Updated:** 2026-06-24
+**Source:** API delta research 2026-06-24 — `PlayerAchievement` ([#4633](https://github.com/RetroAchievements/RAWeb/pull/4633), merged 2026-03-26).
+
+**Why now:** `#4633` is the first v2 lever for *per-set unlock* scoping. Turned out to be a **correctness fix**, not just an optimization: subset achievements were showing 0 earned because their unlocks were never fetched (see root cause below).
+
+| Task | Status | Docs | Code | Attempts |
+|------|--------|------|------|----------|
+| Live-confirm `#4633` shape + auth (own account) | done | [v2/README.md](docs/v2/README.md) | — | 2026-06-24 `--probe-v2`: `player-achievements?filter[achievementSetId]=7890` → **8 unlocks** (works with web API key, own account). **Key finding:** `filter[gameId]=11270 & filter[achievementSetId]=7890` → **0** — subset achievements belong to a different gameId, so `filter[gameId]` does **not** return subset unlocks. That was the root cause of subsets reading 0/39. |
+| Fetch + apply per-set unlocks (the bug fix) | done | — | `Services/V2ProgressService.cs`, `Services/HybridProgressService.cs` | Added `GetPlayerUnlocksForSetAsync` (refactored shared `GetPlayerUnlocksAsync(filterKey,…)`). Phase 2 now fetches each engaged non-core set's unlocks by `achievementSetId` (parallel) and merges them into the unlock map before tagging. FF VIII now shows 8/39 for "No Junction, No Level Up" (was 0/39); log: "applied 15 unlocks (from 2 engaged set(s))". |
+| Gate per-set drill-down to avoid fan-out | done | — | `Services/HybridProgressService.cs` | Gated on `EarnedAchievements > 0` from the 1-call `player-achievement-sets` aggregate, so only *engaged* non-core sets are queried (untouched subsets cost 0 calls). |
+| Incremental since-cursor (`filter[unlockedFrom]`) feed | backlog | — | `Services/V2ProgressService.cs` | Optimization only: current impl re-fetches each engaged set's full unlock list on a full refresh. A `unlockedFrom={lastSeen}` cursor would shrink payloads — but `unlockedFrom` boundary semantics (inclusive/exclusive, hardcore vs softcore) still need live confirmation before use as a polling cursor. |
+
+**Notes:**
+- **Root cause (verified live 2026-06-24):** `player-achievements?filter[gameId]` returns only base-game unlocks; subset achievements have a different gameId, so their unlocks must be fetched by `filter[achievementSetId]`. Don't "fix" this by widening the gameId query — it can't return them.
+- The achievement-scoped variant filters out unranked users and excludes hub/event achievements, so keep `PlayerAchievementSet` for per-set completion %; use `#4633` only for the per-achievement unlock feed.
+
+---
+
+### STORY-012: Dashboard Subset UX
+
+> As a user, I want the dashboard to clearly show which achievement set I'm tracking, with a working set selector, the right badge, and balanced layout, so multiset games are easy to read at a glance.
+
+**Status:** in-progress
+**Created:** 2026-06-24
+
+| Task | Status | Code | Attempts |
+|------|--------|------|----------|
+| Set dropdown always visible in Current Game panel | done | `ViewModels/MainViewModel.cs`, `MainWindow.xaml` | Populate `AvailableAchievementSets` for single-set games too (synthesize Core if no set metadata); visibility gated on new `HasAchievementSets`; `AchievementSet.DisplayName`/`TypeLabel` for blank core titles. |
+| Fix set/stats mismatch on restore | done | `ViewModels/MainViewModel.cs` | `UpdateAvailableAchievementSets` set the dropdown selection but not `CurrentGame.SelectedSet`, so a restored non-core set showed Core's numbers. Now syncs `CurrentGame.SelectedSet`. |
+| Set-type badge (CORE/BONUS/…) in Current Game panel | done | `Converters/SetTypeToAccentBrushConverter.cs`, `Converters/AchievementSetVisuals.cs`, `MainWindow.xaml` | Colored pill next to the dropdown. Colors centralized in `AchievementSetVisuals` (shared with the Alerts badge); `AlertsViewModel` refactored to use it. |
+| Subset badge replaces game badge when non-core selected | done | `Models/AchievementSet.cs`, `Services/*`, `ViewModels/MainViewModel.cs`, `MainWindow.xaml` | Plumbed set `BadgeUrl` (API `achievement-sets[].badgeUrl`) through `AchievementSetProgress` → `AchievementSet`; new `CurrentGameBadgeUri` shows the subset's badge for non-core, else game badge. |
+| Focus badge image in Current Focus panel | done | `MainWindow.xaml` | Added the achievement badge (bound to existing `FocusBadgeUri`) left of the focus title/description. |
+| Dashboard spacing (uniform 20px gutters) | done | `MainWindow.xaml` | Measured live (pixel scan): outer 33px vs center 10px → uniform 20px (card `Margin` 10 + dashboard grid `Margin` 0). Window 790 high, bottom row `MinHeight=250`. |
+
+**Notes:**
+- **DEBUG toggle in place:** `AchievementTrackingService.DebugForceGameId` is set to `11270` (Final Fantasy VIII) in `App.OnStartup` to pin the tracked game for subset testing. It defaults to `0` (normal "currently playing"); tests leave it at 0. **Remove the `App.OnStartup` line to restore live tracking.**
+- Focus overlay window sizing review is the next task (compare against the legacy project's focus window).
+
+---
+
 ## Backlog
 
 _New stories are added here when captured from "As a user..." requests. Move to Active Stories when work begins._
+
+- ~~Distinct per-set-type visual treatment in AlertsOverlay (STORY-001 phase 5).~~ **Done 2026-06-24.**
+- Per-set notification opt-in toggles + settings UI, incl. configurable per-set accent colors (STORY-001 phase 6).
+- STORY-011 incremental since-cursor (`filter[unlockedFrom]`) unlock feed — optimization, after live cursor-semantics confirmation.
+- Remove the `DebugForceGameId = 11270` hardcode in `App.OnStartup` when subset testing is finished (STORY-012).
+- Watch `AchievementSetVersion` ([#4979](https://github.com/RetroAchievements/RAWeb/pull/4979), OPEN) — when merged, read latest version per set (`page[size]=1`) to re-sync set definitions only on version change.
+- Optional v1 subset fallback via "Subsets hub + per-game-ID aggregation" (only if a stable public v2 contract does not materialize).
 
 ---
 
@@ -158,6 +305,10 @@ _Stories move here when all tasks are done._
 - **STORY-004** — RA Guides Integration (2026-02-27)
 - **STORY-005** — Session-Based V2 Auth (2026-03-01)
 - **STORY-006** — FlaUI Integration Tests (2026-03-01)
+- **STORY-007** — Environment-Variable Credentials (2026-05-29)
+- **STORY-008** — Test Suite Overhaul (2026-05-29)
+- **STORY-009** — Make Live Data Actually Flow / v1 mapping + window UX (2026-05-29)
+- **STORY-010** — Wire Up the Real v2 API / api. subdomain (2026-05-29)
 
 ---
 

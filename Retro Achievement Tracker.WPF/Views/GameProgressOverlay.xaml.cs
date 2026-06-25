@@ -34,6 +34,8 @@ public partial class GameProgressOverlay : Window
 
         ViewModel = new GameProgressViewModel();
         DataContext = ViewModel;
+        Width = ViewModel.WindowWidth;
+        Height = ViewModel.WindowHeight;
         _settingsService = SettingsService.Instance;
 
         _showAnimation = (Storyboard)FindResource("ShowAnimation");
@@ -84,6 +86,7 @@ public partial class GameProgressOverlay : Window
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (_isUpdatingSize) return;
+        if (!IsLoaded) return;
 
         _isUpdatingSize = true;
         ViewModel.WindowWidth = e.NewSize.Width;

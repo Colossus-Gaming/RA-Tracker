@@ -34,6 +34,11 @@ public partial class GameInfoOverlay : Window
 
         ViewModel = new GameInfoViewModel();
         DataContext = ViewModel;
+        // Force the window to the VM's intended default size. WPF's auto-size for transparent
+        // windows kicks in before the TwoWay binding applies the VM value, so without this the
+        // window opens at the screen's auto-sized dimensions instead of the VM default.
+        Width = ViewModel.WindowWidth;
+        Height = ViewModel.WindowHeight;
         _settingsService = SettingsService.Instance;
 
         _showAnimation = (Storyboard)FindResource("ShowAnimation");
@@ -84,6 +89,10 @@ public partial class GameInfoOverlay : Window
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (_isUpdatingSize) return;
+        // WPF's initial measure on a transparent/style=None window fires SizeChanged with
+        // its auto-sized dimensions before the TwoWay binding has pushed the VM defaults
+        // into Width/Height. Ignoring pre-Loaded events keeps the VM's defaults intact.
+        if (!IsLoaded) return;
 
         _isUpdatingSize = true;
         ViewModel.WindowWidth = e.NewSize.Width;

@@ -48,18 +48,27 @@ public static class V2ResourceMapper
     /// </summary>
     public static GameInfo MapToGameInfo(JsonApiResource resource, Dictionary<(string Type, string Id), JsonApiResource>? includedIndex = null)
     {
+        // v2 game attributes use `*Url` suffixes for media (badgeUrl, imageBoxArtUrl, ...).
+        // releasedAt arrives as full ISO ("1999-09-29T00:00:00.000000Z"); the UI shows just the year,
+        // so we strip the time part. publisher/developer/genre are not on the v2 games resource —
+        // they'd have to come from v1 GetGame.php if needed.
+        var releasedRaw = resource.GetAttribute<string>("releasedAt") ?? string.Empty;
+        var released = releasedRaw.Length >= 4 && DateTime.TryParse(releasedRaw, out var rd)
+            ? rd.Year.ToString()
+            : releasedRaw;
+
         var gameInfo = new GameInfo
         {
             Id = long.TryParse(resource.Id, out var id) ? id : 0,
             Title = resource.GetAttribute<string>("title") ?? string.Empty,
             BadgeUri = resource.GetAttribute<string>("badgeUrl") ?? string.Empty,
-            ImageTitle = resource.GetAttribute<string>("imageTitle") ?? string.Empty,
-            ImageIngame = resource.GetAttribute<string>("imageIngame") ?? string.Empty,
-            ImageBoxArt = resource.GetAttribute<string>("imageBoxArt") ?? string.Empty,
+            ImageTitle = resource.GetAttribute<string>("imageTitleUrl") ?? resource.GetAttribute<string>("imageTitle") ?? string.Empty,
+            ImageIngame = resource.GetAttribute<string>("imageIngameUrl") ?? resource.GetAttribute<string>("imageIngame") ?? string.Empty,
+            ImageBoxArt = resource.GetAttribute<string>("imageBoxArtUrl") ?? resource.GetAttribute<string>("imageBoxArt") ?? string.Empty,
             Publisher = resource.GetAttribute<string>("publisher") ?? string.Empty,
             Developer = resource.GetAttribute<string>("developer") ?? string.Empty,
             Genre = resource.GetAttribute<string>("genre") ?? string.Empty,
-            Released = resource.GetAttribute<string>("releasedAt") ?? string.Empty
+            Released = released
         };
 
         // Map system relationship if included
@@ -117,12 +126,14 @@ public static class V2ResourceMapper
     /// </summary>
     public static UserSummary MapToUserSummary(JsonApiResource resource)
     {
+        // v2 splits score into softcore "points" and "pointsHardcore"; the headline RA score is hardcore.
+        // The user resource carries no rank or last-game-id, so those stay 0 (current game comes from player-games).
         return new UserSummary
         {
             UserName = resource.GetAttribute<string>("displayName") ?? resource.GetAttribute<string>("username") ?? string.Empty,
-            TotalPoints = resource.GetAttribute<int?>("points") ?? 0,
+            TotalPoints = resource.GetAttribute<int?>("pointsHardcore") ?? resource.GetAttribute<int?>("points") ?? 0,
             TotalTruePoints = resource.GetAttribute<int?>("pointsWeighted") ?? 0,
-            Rank = resource.GetAttribute<int?>("playerRank") ?? 0,
+            Rank = resource.GetAttribute<int?>("playerRank") ?? resource.GetAttribute<int?>("rank") ?? 0,
             Motto = resource.GetAttribute<string>("motto") ?? string.Empty,
             UserPic = resource.GetAttribute<string>("avatarUrl") ?? string.Empty,
             LastGameID = resource.GetAttribute<int?>("lastGameId") ?? 0
@@ -157,7 +168,9 @@ public static class V2ResourceMapper
             Points = resource.GetAttribute<int?>("points") ?? 0,
             TrueRatio = resource.GetAttribute<int?>("pointsWeighted") ?? 0,
             BadgeUri = resource.GetAttribute<string>("badgeUrl") ?? string.Empty,
-            DisplayOrder = resource.GetAttribute<int?>("displayOrder") ?? 0
+            DisplayOrder = resource.GetAttribute<int?>("orderColumn")
+                           ?? resource.GetAttribute<int?>("displayOrder")
+                           ?? 0
         };
 
         // Map game relationship if included

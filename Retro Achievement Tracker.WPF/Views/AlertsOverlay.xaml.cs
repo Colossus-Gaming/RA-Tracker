@@ -42,12 +42,14 @@ public partial class AlertsOverlay : Window
 
         ViewModel = new AlertsViewModel();
         DataContext = ViewModel;
+        Width = ViewModel.WindowWidth;
+        Height = ViewModel.WindowHeight;
         _settingsService = SettingsService.Instance;
 
         // Only allow dragging when in position mode
         MouseLeftButtonDown += (s, e) =>
         {
-            if (_isPositionMode && e.ButtonState == MouseButtonState.Pressed)
+            if (e.ButtonState == MouseButtonState.Pressed)
                 DragMove();
         };
 
@@ -111,6 +113,7 @@ public partial class AlertsOverlay : Window
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (_isUpdatingSize) return;
+        if (!IsLoaded) return;
 
         _isUpdatingSize = true;
         ViewModel.WindowWidth = e.NewSize.Width;

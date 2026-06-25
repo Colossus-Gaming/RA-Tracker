@@ -80,7 +80,17 @@ public class MainViewModel : ViewModelBase
 
     #region Constructor
 
-    public MainViewModel()
+    public MainViewModel() : this(loadSampleData: true)
+    {
+    }
+
+    /// <summary>
+    /// Creates the ViewModel, optionally seeding placeholder sample data.
+    /// Production code uses the parameterless constructor (sample data on). Tests pass
+    /// <paramref name="loadSampleData"/> = false for a clean, deterministic starting state.
+    /// </summary>
+    /// <param name="loadSampleData">Whether to seed the demo user/game placeholder data.</param>
+    public MainViewModel(bool loadSampleData)
     {
         // Initialize settings service
         _settingsService = SettingsService.Instance;
@@ -125,7 +135,10 @@ public class MainViewModel : ViewModelBase
 
         // Load sample data for design time preview and as placeholder at runtime
         // This provides placeholder images until real data is loaded from the API
-        LoadSampleData();
+        if (loadSampleData)
+        {
+            LoadSampleData();
+        }
     }
 
     /// <summary>
@@ -150,6 +163,10 @@ public class MainViewModel : ViewModelBase
             _apiKey = _settingsService.GetApiKey();
             _password = _settingsService.GetPassword();
             _rememberPassword = settings.RememberPassword;
+
+            // Environment variables take precedence over stored values (dev/testing convenience).
+            // These are intentionally not persisted back to the settings file.
+            ApplyEnvironmentCredentialOverrides();
 
             // Auto-launch settings
             _autoStart = settings.AutoStart;
@@ -194,6 +211,39 @@ public class MainViewModel : ViewModelBase
         finally
         {
             _isLoadingSettings = false;
+        }
+    }
+
+    /// <summary>
+    /// Applies credential overrides from environment variables (see <see cref="EnvironmentCredentials"/>).
+    /// When a variable is set, it wins over the stored value. Overrides are kept in memory only and
+    /// are never written back to the settings file. Must be called within the settings-loading phase.
+    /// </summary>
+    private void ApplyEnvironmentCredentialOverrides()
+    {
+        var envUsername = EnvironmentCredentials.GetUsername();
+        if (envUsername != null)
+        {
+            _username = envUsername;
+        }
+
+        var envApiKey = EnvironmentCredentials.GetApiKey();
+        if (envApiKey != null)
+        {
+            _apiKey = envApiKey;
+        }
+
+        var envPassword = EnvironmentCredentials.GetPassword();
+        if (envPassword != null)
+        {
+            _password = envPassword;
+        }
+
+        if (EnvironmentCredentials.HasAny)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                "[MainViewModel] Applied credential override(s) from environment: " +
+                $"user={envUsername != null}, apiKey={envApiKey != null}, password={envPassword != null}");
         }
     }
 
@@ -447,6 +497,7 @@ public class MainViewModel : ViewModelBase
                     nameof(GameGenre),
                     nameof(GameReleased),
                     nameof(GameBadgeUri),
+                    nameof(CurrentGameBadgeUri),
                     nameof(GameAchievementsEarned),
                     nameof(GameAchievementsTotal),
                     nameof(GamePointsEarned),
@@ -466,6 +517,17 @@ public class MainViewModel : ViewModelBase
     public string GameGenre => CurrentGame?.Genre ?? "Unknown";
     public string GameReleased => CurrentGame?.Released ?? "Unknown";
     public string GameBadgeUri => CurrentGame?.BadgeUri ?? string.Empty;
+
+    /// <summary>
+    /// The badge shown in the Current Game panel: the selected subset's own badge when a non-core
+    /// set is selected, otherwise the game badge.
+    /// </summary>
+    public string CurrentGameBadgeUri =>
+        SelectedAchievementSet is { } set
+        && set.SetType != AchievementSetType.Core
+        && !string.IsNullOrEmpty(set.BadgeUrl)
+            ? set.BadgeUrl
+            : GameBadgeUri;
     public int GameAchievementsEarned => CurrentGame?.AchievementsEarned ?? 0;
     public int GameAchievementsTotal => CurrentGame?.Achievements?.Count ?? 0;
     public int GamePointsEarned => CurrentGame?.GamePointsEarned ?? 0;
@@ -501,6 +563,12 @@ public class MainViewModel : ViewModelBase
     public bool HasMultipleSets => CurrentGame?.HasMultipleSets ?? false;
 
     /// <summary>
+    /// Gets whether the dashboard set dropdown should be shown — true whenever the current
+    /// game exposes at least one achievement set (including single-set games).
+    /// </summary>
+    public bool HasAchievementSets => AvailableAchievementSets.Count > 0;
+
+    /// <summary>
     /// Gets the name of the currently selected achievement set, or null if only one set.
     /// </summary>
     public string? SelectedSetName => SelectedAchievementSet?.Name;
@@ -528,6 +596,7 @@ public class MainViewModel : ViewModelBase
                 // Notify UI of changes
                 OnPropertiesChanged(
                     nameof(SelectedSetName),
+                    nameof(CurrentGameBadgeUri),
                     nameof(GameAchievementsEarned),
                     nameof(GameAchievementsTotal),
                     nameof(GamePointsEarned),
@@ -552,26 +621,49 @@ public class MainViewModel : ViewModelBase
         AvailableAchievementSets.Clear();
         _selectedAchievementSet = null;
 
-        if (CurrentGame == null || !CurrentGame.HasMultipleSets)
+        if (CurrentGame == null)
         {
-            OnPropertiesChanged(nameof(HasMultipleSets), nameof(SelectedAchievementSet), nameof(SelectedSetName));
+            OnPropertiesChanged(nameof(HasMultipleSets), nameof(HasAchievementSets), nameof(SelectedAchievementSet), nameof(SelectedSetName), nameof(CurrentGameBadgeUri));
             return;
         }
 
-        // Populate available sets
-        foreach (var set in CurrentGame.AchievementSets)
+        // Populate the set list. Multiset games expose all their sets; single-set games still
+        // surface one entry so the set dropdown is always present on the dashboard.
+        if (CurrentGame.AchievementSets.Count > 0)
         {
-            AvailableAchievementSets.Add(set);
+            foreach (var set in CurrentGame.AchievementSets)
+            {
+                AvailableAchievementSets.Add(set);
+            }
+        }
+        else if (CurrentGame.Achievements.Count > 0)
+        {
+            // Pure-V1 fallback: no set metadata available, so synthesize a single Core set view.
+            AvailableAchievementSets.Add(new AchievementSet
+            {
+                Id = 0,
+                GameId = CurrentGame.Id,
+                Name = "Core",
+                SetType = AchievementSetType.Core,
+                Achievements = CurrentGame.Achievements
+            });
         }
 
-        // Try to restore the previously selected set from settings
+        // Try to restore the previously selected set from settings (multiset only);
+        // otherwise default to the active/core set.
         if (!TryRestoreSavedSetSelection())
         {
-            // Select the active set (core by default, or the game's current selection)
-            _selectedAchievementSet = CurrentGame.ActiveSet ?? CurrentGame.CoreSet ?? CurrentGame.AchievementSets.FirstOrDefault();
+            _selectedAchievementSet = CurrentGame.ActiveSet
+                ?? CurrentGame.CoreSet
+                ?? AvailableAchievementSets.FirstOrDefault();
         }
 
-        OnPropertiesChanged(nameof(HasMultipleSets), nameof(SelectedAchievementSet), nameof(SelectedSetName));
+        // Keep the game's active set in sync with the dropdown selection so the progress stats
+        // (earned/total/points) reflect the selected set, not just Core. Without this, a restored
+        // non-core selection shows the right set in the dropdown but Core's numbers underneath.
+        CurrentGame.SelectedSet = _selectedAchievementSet;
+
+        OnPropertiesChanged(nameof(HasMultipleSets), nameof(HasAchievementSets), nameof(SelectedAchievementSet), nameof(SelectedSetName), nameof(CurrentGameBadgeUri));
 
         System.Diagnostics.Debug.WriteLine($"[MainViewModel] Updated available sets: {AvailableAchievementSets.Count} sets, selected: {_selectedAchievementSet?.Name}");
     }
@@ -1132,6 +1224,9 @@ public class MainViewModel : ViewModelBase
     public event EventHandler<TimeZoneInfo>? TimezoneChanged;
     public event EventHandler<bool>? PositionModeChanged;
 
+    /// <summary>Raised when polling begins, so the view can auto-launch configured overlays.</summary>
+    public event EventHandler? PollingStarted;
+
     #endregion
 
     #region Sample Data (for Demo)
@@ -1272,8 +1367,12 @@ public class MainViewModel : ViewModelBase
 
         var session = SessionService.Instance;
 
-        // If we have a password but no API key or no session, request login
-        if (!string.IsNullOrWhiteSpace(Password) && !session.IsAuthenticated)
+        // Only request a session login if we have a password AND no API key. With an API key, both
+        // v2 (api.retroachievements.org subdomain — no Cloudflare challenge) and v1 (z+y params)
+        // work directly without a session. The session was only needed for the old, wrong v2 path.
+        if (string.IsNullOrWhiteSpace(ApiKey)
+            && !string.IsNullOrWhiteSpace(Password)
+            && !session.IsAuthenticated)
         {
             LoginRequired?.Invoke(this, EventArgs.Empty);
             return;
@@ -1297,6 +1396,10 @@ public class MainViewModel : ViewModelBase
         }
         else
         {
+            // API-key-only path: v2 calls go to api.retroachievements.org/v2 with X-API-Key,
+            // no session cookie required. Reflect that in the status text so the UI doesn't
+            // read as "Not connected" when calls are succeeding.
+            SessionStatus = "API key (no session)";
             _serviceFactory = new ServiceFactory(Username, ApiKey, featureFlags, EnableApiLogging);
         }
 
@@ -1314,20 +1417,25 @@ public class MainViewModel : ViewModelBase
         _trackingService.UserInfoUpdated += OnTrackingServiceUserInfoUpdated;
         _trackingService.PollingStatusChanged += OnTrackingServicePollingStatusChanged;
 
+        // Drop the placeholder/demo data so the UI doesn't show "DemoUser"/sample game
+        // while the first real poll is in flight.
+        ClearPlaceholderData();
+
         IsPolling = true;
         StatusIcon = "?";
         StatusMessage = "Polling started";
 
-        // Set API status indicator
+        // Set API status indicator. v2 works through the api.* subdomain with just X-API-Key,
+        // so "no session" no longer implies v1-only — both session and key-only paths use v2.
         if (_serviceFactory.HasSessionAuth)
         {
-            ApiStatusText = "V2 API active";
+            ApiStatusText = "V2 API (session)";
             IsUsingV1Fallback = false;
         }
         else if (!string.IsNullOrWhiteSpace(ApiKey))
         {
-            ApiStatusText = "V1 API (no session)";
-            IsUsingV1Fallback = true;
+            ApiStatusText = "V2 API (key)";
+            IsUsingV1Fallback = false;
         }
         else
         {
@@ -1337,8 +1445,24 @@ public class MainViewModel : ViewModelBase
 
         Log($"Started polling — {ApiStatusText}");
 
-        // Start the polling timer
+        // Notify the view so it can auto-launch the configured overlays (manual Start, not just auto-start).
+        PollingStarted?.Invoke(this, EventArgs.Empty);
+
+        // Start the recurring timer, then poll immediately so data appears right away
+        // instead of after the first 30-second countdown.
         StartPollingTimer();
+        _ = PollApiAsync();
+    }
+
+    /// <summary>
+    /// Clears the demo/placeholder user, game, and focus data shown before any real poll completes.
+    /// </summary>
+    private void ClearPlaceholderData()
+    {
+        UserSummary = null;
+        CurrentGame = null;
+        CurrentFocusAchievement = null;
+        _currentFocusIndex = -1;
     }
 
     private void RecreateServiceFactory()
@@ -1513,10 +1637,14 @@ public class MainViewModel : ViewModelBase
             // Clear and rewrite stream labels for new game
             _streamLabelService.ClearAllLabels();
 
-            // Auto-select first locked achievement for focus
+            // Auto-select first locked achievement for focus and push it to an open Focus overlay.
             if (LockedAchievements.Count > 0)
             {
                 CurrentFocusIndex = 0;
+                if (CurrentFocusAchievement != null)
+                {
+                    FocusChanged?.Invoke(this, CurrentFocusAchievement);
+                }
             }
 
             // Save the game and set selection to settings
@@ -1597,7 +1725,15 @@ public class MainViewModel : ViewModelBase
 
         // Get achievements from the appropriate source (selected set or default)
         var achievements = GetAchievementsForCurrentSet();
-        if (achievements == null || achievements.Count == 0) return;
+        if (achievements == null || achievements.Count == 0)
+        {
+            // No achievements for this game/set — make sure the dashboard "Current Focus" panel
+            // and any open Focus overlay don't keep showing stale sample/previous data.
+            CurrentFocusAchievement = null;
+            _currentFocusIndex = -1;
+            OnPropertyChanged(nameof(CanNavigateFocus));
+            return;
+        }
 
         var locked = achievements.Where(a => !a.DateEarned.HasValue).ToList();
         var unlocked = achievements.Where(a => a.DateEarned.HasValue)
@@ -1609,8 +1745,13 @@ public class MainViewModel : ViewModelBase
         // Recent unlocks (last 5)
         foreach (var a in unlocked.Take(5)) RecentUnlocks.Add(a);
 
-        // Auto-select first locked achievement for focus
-        if (CurrentFocusAchievement == null && LockedAchievements.Count > 0)
+        // Auto-select first locked achievement for focus; clear when nothing is left to do.
+        if (LockedAchievements.Count == 0)
+        {
+            CurrentFocusAchievement = null;
+            _currentFocusIndex = -1;
+        }
+        else if (CurrentFocusAchievement == null || !LockedAchievements.Contains(CurrentFocusAchievement))
         {
             CurrentFocusIndex = 0;
         }

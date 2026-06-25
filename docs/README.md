@@ -18,6 +18,10 @@ Treat this key like a secret.
 curl "https://retroachievements.org/API/API_GetTopTenUsers.php?y=YOUR_WEB_API_KEY"
 ```
 
+### Credentials for the App (Environment Variables)
+
+The WPF app and test suite read credentials from `RA_USERNAME`, `RA_API_KEY`, and `RA_PASSWORD`. When set, they override the saved settings and are never persisted. See [.ai/ORCHESTRATOR_NOTES.md](../.ai/ORCHESTRATOR_NOTES.md#credentials-via-environment-variables).
+
 ### Official Client Libraries
 
 - JavaScript/TypeScript: https://github.com/RetroAchievements/api-js
@@ -41,7 +45,9 @@ These rules apply to API usage within this repository:
 
 ## V2 API Reference
 
-The v2 API is in production and provides subset support, JSON:API compliance, and OAuth2 auth. Full reference: [v2/README.md](v2/README.md).
+The v2 API provides subset support, JSON:API compliance, and OAuth2 auth. Full reference: [v2/README.md](v2/README.md).
+
+> **Caveat (2026-05-29):** v2 is **not** a published public contract (api-docs documents v1 only) and is reachable only via an authenticated browser session. Field shapes in `v2/*` are *observed* from RAWeb sources — verify against live responses. The public v1 API has no subset model. See [v2 Status](guides/v2-status.md).
 
 Key resources for this project:
 

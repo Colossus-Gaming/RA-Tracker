@@ -34,6 +34,20 @@ All tests:
 dotnet test "Retro Achievement Tracker.Tests/Retro Achievement Tracker.Tests.csproj"
 ```
 
+Baseline: 278 unit tests pass (`Category!=Integration`), 0 failing.
+
+## Credentials (Environment Variables)
+
+For local dev/testing, set these instead of using the UI. When set (non-empty) they override the settings file and are never persisted:
+
+```powershell
+$env:RA_USERNAME = "your-username"
+$env:RA_API_KEY  = "your-web-api-key"   # control panel -> Keys
+$env:RA_PASSWORD = "your-password"      # for the WebView2 session login (v2 / Cloudflare bypass)
+```
+
+Read by `Services/EnvironmentCredentials.cs`, applied in `MainViewModel`.
+
 ## Project Structure
 
 ```
@@ -49,18 +63,25 @@ Retro Achievement Tracker.WPF/
   App.xaml          # Application entry point
 
 Retro Achievement Tracker.Tests/
-  IntegrationTests/ # FlaUI UI automation tests
-  V2ApiTests/       # V2 API contract/integration tests
-  ViewModelTests/   # ViewModel unit tests
+  IntegrationTests/ # FlaUI UI automation tests (Category=Integration)
+  V2ApiTests/       # V2 client, mapper, progress-service, subset mapping tests
+  ViewModelTests/   # ViewModel unit tests (multi-set, focus set name, env override)
+  ModelTests/       # Real-model tests (Achievement, GameInfo, UserSummary, UserGameProgress)
+  ServiceTests/     # EnvironmentCredentials, SettingsService encryption, subset grouping
+  ConverterTests/   # XAML value converters
 ```
+
+Tests target the **real** WPF/model types via the project reference — do not create duplicate stand-in model classes in the test project.
 
 ## Key Conventions
 
 - **MVVM**: ViewModels extend `ViewModelBase`; commands use `RelayCommand`
 - **Settings**: JSON-based via `SettingsService.cs` → `%APPDATA%/RATracker/settings.json`
+- **Credentials**: env vars (`RA_USERNAME`/`RA_API_KEY`/`RA_PASSWORD`) override settings; passwords/keys stored with DPAPI
 - **Logging**: `System.Diagnostics.Debug.WriteLine` with `[Tag]` prefixes
 - **API auth**: Session cookies (WebView2 → CookieContainer) + X-API-Key header
 - **V2 primary, V1 fallback**: `HybridProgressService` tries V2 first, falls back to V1
+- **Subsets**: achievements are tagged with `SetId`/`SetType`/`SetName` in `V2ProgressService`; `AchievementTrackingService` groups them per set. V1 has no subset model (single Core set). The v2 contract is not publicly published — keep mappers defensive.
 - **Overlays**: Each has its own View + ViewModel; data pushed from `MainWindow.xaml.cs`
 
 ## Do Not

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 using RATracker.Models;
+using RATracker.WPF.Converters;
 
 namespace RATracker.WPF.ViewModels;
 
@@ -30,6 +31,10 @@ public class AlertsViewModel : ViewModelBase
     private string _points = string.Empty;
     private string _badgeUri = string.Empty;
     private bool _isMasteryNotification;
+
+    // Sub-set (Core/Bonus/Specialty/Exclusive/Challenge) visual differentiation
+    private AchievementSetType _setType = AchievementSetType.Core;
+    private string _setName = string.Empty;
 
     // Mastery-specific
     private string _masteryAchievements = string.Empty;
@@ -143,7 +148,7 @@ public class AlertsViewModel : ViewModelBase
     public bool IsMasteryNotification
     {
         get => _isMasteryNotification;
-        set => SetProperty(ref _isMasteryNotification, value);
+        set { if (SetProperty(ref _isMasteryNotification, value)) OnPropertyChanged(nameof(SetBadgeVisible)); }
     }
 
     public string MasteryAchievements
@@ -157,6 +162,63 @@ public class AlertsViewModel : ViewModelBase
         get => _masteryPoints;
         set => SetProperty(ref _masteryPoints, value);
     }
+
+    #endregion
+
+    #region Sub-Set Properties
+
+    /// <summary>
+    /// The achievement set type of the current notification. Core keeps the standard look;
+    /// non-core sets get a distinct accent border and a corner badge.
+    /// </summary>
+    public AchievementSetType SetType
+    {
+        get => _setType;
+        set { if (SetProperty(ref _setType, value)) NotifySetVisualChanged(); }
+    }
+
+    /// <summary>
+    /// The display name of the current notification's achievement set (e.g. "Bonus", "Speedrun Showcase").
+    /// </summary>
+    public string SetName
+    {
+        get => _setName;
+        set => SetProperty(ref _setName, value);
+    }
+
+    /// <summary>
+    /// Whether the current notification is from a non-core, recognized subset
+    /// (Bonus/Specialty/Exclusive/Challenge). Unknown is treated as core for safety.
+    /// </summary>
+    public bool IsSubSetNotification =>
+        _setType != AchievementSetType.Core && _setType != AchievementSetType.Unknown;
+
+    /// <summary>
+    /// The accent color for the current set type. Core/Unknown fall back to the configured BorderColor.
+    /// </summary>
+    public Brush SetAccentColor => _setType is AchievementSetType.Core or AchievementSetType.Unknown
+        ? BorderColor
+        : AchievementSetVisuals.AccentBrush(_setType);
+
+    /// <summary>
+    /// The border brush actually rendered: the per-set accent for subsets, otherwise the user's BorderColor.
+    /// </summary>
+    public Brush EffectiveBorderColor => IsSubSetNotification ? SetAccentColor : BorderColor;
+
+    /// <summary>
+    /// Whether to show the corner set-type badge (only for non-core achievement notifications).
+    /// </summary>
+    public bool SetBadgeVisible => IsSubSetNotification && !IsMasteryNotification;
+
+    /// <summary>
+    /// The short set-type label shown in the corner badge (e.g. "BONUS", "CHALLENGE").
+    /// </summary>
+    public string SetBadgeText => IsSubSetNotification ? _setType.ToString().ToUpperInvariant() : string.Empty;
+
+    /// <summary>
+    /// The background brush for the corner set-type badge (matches the accent color).
+    /// </summary>
+    public Brush SetBadgeBackground => SetAccentColor;
 
     #endregion
 
@@ -479,7 +541,11 @@ public class AlertsViewModel : ViewModelBase
     public Brush BorderColor
     {
         get => _borderColor;
-        set => SetProperty(ref _borderColor, value);
+        set
+        {
+            if (SetProperty(ref _borderColor, value))
+                OnPropertiesChanged(nameof(SetAccentColor), nameof(EffectiveBorderColor), nameof(SetBadgeBackground));
+        }
     }
 
     public bool BorderEnabled
@@ -535,6 +601,10 @@ public class AlertsViewModel : ViewModelBase
     public void SetAchievementNotification(Achievement achievement)
     {
         IsMasteryNotification = false;
+        SetType = achievement.SetType;
+        SetName = string.IsNullOrWhiteSpace(achievement.SetName)
+            ? achievement.SetType.ToString()
+            : achievement.SetName!;
         Title = achievement.Title;
         Description = achievement.Description;
         Points = achievement.Points.ToString();
@@ -547,6 +617,9 @@ public class AlertsViewModel : ViewModelBase
     public void SetMasteryNotification(GameInfo gameInfo)
     {
         IsMasteryNotification = true;
+        // Mastery uses the standard treatment; clear any stale subset accent from a prior alert.
+        SetType = AchievementSetType.Core;
+        SetName = string.Empty;
         Title = gameInfo.Title;
         MasteryAchievements = $"{gameInfo.AchievementsEarned}/{gameInfo.AchievementsPossible}";
         MasteryPoints = $"{gameInfo.GamePointsEarned:N0} pts";
@@ -559,6 +632,8 @@ public class AlertsViewModel : ViewModelBase
     public void SetSampleAchievementNotification()
     {
         IsMasteryNotification = false;
+        SetType = AchievementSetType.Core;
+        SetName = "Core";
         Title = "Achievement Unlocked!";
         Description = "Complete the first level and begin your adventure!";
         Points = "10";
@@ -571,6 +646,8 @@ public class AlertsViewModel : ViewModelBase
     public void SetSampleMasteryNotification()
     {
         IsMasteryNotification = true;
+        SetType = AchievementSetType.Core;
+        SetName = string.Empty;
         Title = "MASTERED!";
         MasteryAchievements = "24/24";
         MasteryPoints = "400 pts";
@@ -591,6 +668,17 @@ public class AlertsViewModel : ViewModelBase
             nameof(TitleColor), nameof(TitleStrokeColor), nameof(TitleStrokeSize), nameof(TitleStrokeEnabled),
             nameof(DescriptionColor), nameof(DescriptionStrokeColor), nameof(DescriptionStrokeSize), nameof(DescriptionStrokeEnabled),
             nameof(PointsColor), nameof(PointsStrokeColor), nameof(PointsStrokeSize), nameof(PointsStrokeEnabled));
+    }
+
+    private void NotifySetVisualChanged()
+    {
+        OnPropertiesChanged(
+            nameof(IsSubSetNotification),
+            nameof(SetAccentColor),
+            nameof(EffectiveBorderColor),
+            nameof(SetBadgeVisible),
+            nameof(SetBadgeText),
+            nameof(SetBadgeBackground));
     }
 
     #endregion

@@ -1,4 +1,8 @@
+using System.Runtime.CompilerServices;
 using System.Windows;
+
+// Allow the test project to exercise internal v1 DTOs/mappers.
+[assembly: InternalsVisibleTo("RATracker.Tests")]
 
 [assembly:ThemeInfo(
     ResourceDictionaryLocation.None,            //where theme specific resource dictionaries are located

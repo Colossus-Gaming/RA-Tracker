@@ -7,9 +7,9 @@ xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
 xmlns:converters="clr-namespace:RATracker.WPF.Converters"
 xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
 mc:Ignorable="d"
-Title="Retro Achievement Tracker" 
-Height="700" Width="900"
-        MinHeight="600" MinWidth="800"
+Title="Retro Achievement Tracker"
+Height="790" Width="900"
+        MinHeight="760" MinWidth="800"
         Background="#1E1E1E"
         WindowStartupLocation="CenterScreen"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=True}">
@@ -17,6 +17,7 @@ Height="700" Width="900"
     <Window.Resources>
         <!-- Converters -->
         <converters:EnumToBoolConverter x:Key="EnumToBoolConverter"/>
+        <converters:SetTypeToAccentBrushConverter x:Key="SetTypeToAccentBrush"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         
         <!-- Color Palette -->
@@ -289,7 +290,9 @@ Height="700" Width="900"
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Padding" Value="15"/>
-            <Setter Property="Margin" Value="5"/>
+            <!-- 10px on every side → a uniform 20px gutter between adjacent cards. Paired with the
+                 dashboard grid's Margin="0" so the outer margin (ContentArea 10 + card 10 = 20) matches. -->
+            <Setter Property="Margin" Value="10"/>
         </Style>
 
         <!-- Section Header -->
@@ -424,14 +427,17 @@ Height="700" Width="900"
                 <Grid.RenderTransform>
                     <TranslateTransform/>
                 </Grid.RenderTransform>
-                <Grid Margin="10">
+                <!-- Margin 0: card margins (10) supply all gutters so spacing is uniform. -->
+                <Grid Margin="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <!-- Bottom row (Overlay Windows + Current Focus). Floor keeps the overlay
+                             buttons from clipping on smaller windows without inflating dead space. -->
+                        <RowDefinition Height="*" MinHeight="250"/>
                     </Grid.RowDefinitions>
 
                     <!-- User Info Card -->
@@ -476,25 +482,26 @@ Height="700" Width="900"
                                 </Grid.ColumnDefinitions>
                                 <Border Grid.Column="0" CornerRadius="5" Width="80" Height="80" Margin="0,0,15,0">
                                     <Border.Background>
-                                        <ImageBrush ImageSource="{Binding GameBadgeUri}" Stretch="UniformToFill"/>
+                                        <ImageBrush ImageSource="{Binding CurrentGameBadgeUri}" Stretch="UniformToFill"/>
                                     </Border.Background>
                                 </Border>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Text="{Binding GameTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap"/>
                                     <TextBlock Text="{Binding GameConsole}" Foreground="{StaticResource AccentBlue}"/>
                                     
-                                    <!-- Achievement Set Selector -->
+                                    <!-- Achievement Set Selector + set-type badge -->
                                     <StackPanel Orientation="Horizontal" Margin="0,5,0,0"
-                                                Visibility="{Binding HasMultipleSets, Converter={StaticResource BoolToVis}}">
+                                                Visibility="{Binding HasAchievementSets, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="Set: " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
                                         <ComboBox x:Name="AchievementSetComboBox"
                                                   ItemsSource="{Binding AvailableAchievementSets}"
                                                   SelectedItem="{Binding SelectedAchievementSet, Mode=TwoWay}"
+                                                  VerticalAlignment="Center"
                                                   MinWidth="140">
                                             <ComboBox.ItemTemplate>
                                                 <DataTemplate>
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding Name}" Foreground="Black"/>
+                                                        <TextBlock Text="{Binding DisplayName}" Foreground="Black"/>
                                                         <TextBlock Text=" (" Foreground="#666666"/>
                                                         <TextBlock Text="{Binding AchievementCount}" Foreground="#2D7D46"/>
                                                         <TextBlock Text=")" Foreground="#666666"/>
@@ -502,6 +509,13 @@ Height="700" Width="900"
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
+                                        <!-- Set-type badge (CORE / BONUS / SPECIALTY / …) colored by set type -->
+                                        <Border Margin="6,0,0,0" Padding="5,1" CornerRadius="5"
+                                                VerticalAlignment="Center"
+                                                Background="{Binding SelectedAchievementSet.SetType, Converter={StaticResource SetTypeToAccentBrush}}">
+                                            <TextBlock Text="{Binding SelectedAchievementSet.TypeLabel}"
+                                                       Foreground="White" FontWeight="Bold" FontSize="9" FontFamily="Segoe UI"/>
+                                        </Border>
                                     </StackPanel>
                                     
                                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -570,28 +584,39 @@ Height="700" Width="900"
                             </StackPanel>
                             
                             <!-- Achievement Info - fills remaining space -->
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <!-- Title -->
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding FocusTitle}" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" VerticalAlignment="Top"/>
-                                
-                                <!-- Points (upper right) -->
-                                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="10,0,0,0">
-                                    <TextBlock Text="{Binding FocusPoints}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AccentGold}"/>
-                                    <TextBlock Text=" pts" FontSize="14" Foreground="{StaticResource TextMuted}" VerticalAlignment="Bottom" Margin="0,0,0,2"/>
-                                </StackPanel>
-                                
-                                <!-- Description -->
-                                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding FocusDescription}" FontSize="13" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" Margin="0,5,0,0"/>
-                            </Grid>
+                            <DockPanel>
+                                <!-- Focus achievement badge -->
+                                <Border DockPanel.Dock="Left" Width="64" Height="64" CornerRadius="5"
+                                        Margin="0,0,12,0" VerticalAlignment="Top" ClipToBounds="True"
+                                        Visibility="{Binding HasFocusAchievement, Converter={StaticResource BoolToVis}}">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding FocusBadgeUri}" Stretch="UniformToFill"/>
+                                    </Border.Background>
+                                </Border>
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Title -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding FocusTitle}" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap" VerticalAlignment="Top"/>
+
+                                    <!-- Points (upper right) -->
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="10,0,0,0">
+                                        <TextBlock Text="{Binding FocusPoints}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AccentGold}"/>
+                                        <TextBlock Text=" pts" FontSize="14" Foreground="{StaticResource TextMuted}" VerticalAlignment="Bottom" Margin="0,0,0,2"/>
+                                    </StackPanel>
+
+                                    <!-- Description -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding FocusDescription}" FontSize="13" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                </Grid>
+                            </DockPanel>
                         </DockPanel>
                     </Border>
 

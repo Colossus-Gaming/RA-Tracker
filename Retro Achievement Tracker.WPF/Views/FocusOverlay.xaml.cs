@@ -42,6 +42,8 @@ public partial class FocusOverlay : Window
 
         ViewModel = new FocusViewModel();
         DataContext = ViewModel;
+        Width = ViewModel.WindowWidth;
+        Height = ViewModel.WindowHeight;
         _settingsService = SettingsService.Instance;
 
         // Get animation storyboards from resources
@@ -52,7 +54,7 @@ public partial class FocusOverlay : Window
         // Allow window to be dragged when in position mode
         MouseLeftButtonDown += (s, e) =>
         {
-            if (_isPositionMode && e.ButtonState == MouseButtonState.Pressed)
+            if (e.ButtonState == MouseButtonState.Pressed)
                 DragMove();
         };
 
@@ -141,6 +143,7 @@ public partial class FocusOverlay : Window
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (_isUpdatingSize) return;
+        if (!IsLoaded) return;
         
         _isUpdatingSize = true;
         ViewModel.WindowWidth = e.NewSize.Width;

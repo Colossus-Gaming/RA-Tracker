@@ -21,9 +21,15 @@ public enum AchievementSetType
     Specialty = 2,
 
     /// <summary>
-    /// Exclusive achievement set - limited availability.
+    /// Exclusive achievement set - loads in isolation, incompatible with other sets.
     /// </summary>
     Exclusive = 3,
+
+    /// <summary>
+    /// Challenge achievement set - no patched ROM, opt-out by default
+    /// (e.g. "A Button Challenge", "Speedrun Showcase").
+    /// </summary>
+    Challenge = 4,
 
     /// <summary>
     /// Unknown or unrecognized set type.
@@ -56,6 +62,22 @@ public class AchievementSet
     /// The type of achievement set (core, bonus, specialty, etc.).
     /// </summary>
     public AchievementSetType SetType { get; set; } = AchievementSetType.Core;
+
+    /// <summary>
+    /// A user-facing label for the set: its name when present, otherwise the set type
+    /// (the API leaves the core set's title null, so fall back to "Core").
+    /// </summary>
+    public string DisplayName => string.IsNullOrWhiteSpace(Name) ? SetType.ToString() : Name;
+
+    /// <summary>
+    /// A short, uppercase set-type label for badges (e.g. "CORE", "BONUS", "CHALLENGE").
+    /// </summary>
+    public string TypeLabel => SetType.ToString().ToUpperInvariant();
+
+    /// <summary>
+    /// The badge/icon URL for this set. A subset has its own badge, distinct from the game badge.
+    /// </summary>
+    public string BadgeUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// Whether this is the core/base achievement set.
@@ -130,6 +152,7 @@ public class AchievementSet
                 "bonus" => AchievementSetType.Bonus,
                 "specialty" or "special" => AchievementSetType.Specialty,
                 "exclusive" => AchievementSetType.Exclusive,
+                "challenge" => AchievementSetType.Challenge,
                 _ => int.TryParse(strValue, out var intVal) ? ParseSetType(intVal) : AchievementSetType.Unknown
             };
         }
@@ -143,6 +166,7 @@ public class AchievementSet
                 1 => AchievementSetType.Bonus,
                 2 => AchievementSetType.Specialty,
                 3 => AchievementSetType.Exclusive,
+                4 => AchievementSetType.Challenge,
                 _ => AchievementSetType.Unknown
             };
         }

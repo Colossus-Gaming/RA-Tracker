@@ -31,6 +31,20 @@ Run the app:
 dotnet run --project "Retro Achievement Tracker.WPF/Retro Achievement Tracker.WPF.csproj"
 ```
 
+## Credentials
+
+Enter your username, Web API key, and password in the app, or supply them via environment variables (handy for repeated v2 testing). When set, env vars override the saved settings and are never written to disk:
+
+```powershell
+$env:RA_USERNAME = "your-username"
+$env:RA_API_KEY  = "your-web-api-key"   # RetroAchievements control panel -> Keys
+$env:RA_PASSWORD = "your-password"      # used for the behind-the-scenes session login (v2 / Cloudflare)
+```
+
+## Subset Tracking
+
+Multi-set games (Core / Bonus / Specialty / Exclusive) are tracked per set: achievements are tagged with their set membership on the v2 path and grouped into per-set lists. The public v1 API has no subset model, so on V1 fallback a game shows a single Core set. See [docs/guides/v2-status.md](docs/guides/v2-status.md) for the current API reality.
+
 ## Repository Layout
 
 - `Retro Achievement Tracker.WPF/`: WPF app source

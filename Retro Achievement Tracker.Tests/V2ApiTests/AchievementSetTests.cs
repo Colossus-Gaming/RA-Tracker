@@ -78,6 +78,32 @@ public class AchievementSetTests
     }
 
     [Test]
+    public void AchievementSet_ParseSetType_Exclusive_ReturnsExclusive()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(AchievementSet.ParseSetType("exclusive"), Is.EqualTo(AchievementSetType.Exclusive));
+            Assert.That(AchievementSet.ParseSetType("Exclusive"), Is.EqualTo(AchievementSetType.Exclusive));
+            Assert.That(AchievementSet.ParseSetType(3), Is.EqualTo(AchievementSetType.Exclusive));
+        });
+    }
+
+    [Test]
+    public void AchievementSet_ParseSetType_Challenge_ReturnsChallenge()
+    {
+        // Live-verified against SM64 (game 10003), sets 34377 "A Button Challenge" and 9076 "Speedrun Showcase"
+        // both carry type="challenge" in their types[gameId=10003] entry.
+        Assert.Multiple(() =>
+        {
+            Assert.That(AchievementSet.ParseSetType("challenge"), Is.EqualTo(AchievementSetType.Challenge));
+            Assert.That(AchievementSet.ParseSetType("Challenge"), Is.EqualTo(AchievementSetType.Challenge));
+            Assert.That(AchievementSet.ParseSetType("CHALLENGE"), Is.EqualTo(AchievementSetType.Challenge));
+            Assert.That(AchievementSet.ParseSetType(4), Is.EqualTo(AchievementSetType.Challenge));
+            Assert.That(AchievementSet.ParseSetType("4"), Is.EqualTo(AchievementSetType.Challenge));
+        });
+    }
+
+    [Test]
     public void AchievementSet_ParseSetType_Unknown_ReturnsUnknown()
     {
         Assert.Multiple(() =>

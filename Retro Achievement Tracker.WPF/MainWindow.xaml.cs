@@ -40,7 +40,9 @@ public partial class MainWindow : Window
         {
             InitializeComponent();
 
-            _viewModel = new MainViewModel();
+            // loadSampleData: false — the dashboard stays empty until the first real poll
+            // populates it from the API, so no demo/placeholder data is ever shown.
+            _viewModel = new MainViewModel(loadSampleData: false);
             DataContext = _viewModel;
 
             // Subscribe to overlay requests
@@ -59,6 +61,7 @@ public partial class MainWindow : Window
             _viewModel.PositionModeChanged += OnPositionModeChanged;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
             _viewModel.LoginRequired += OnLoginRequired;
+            _viewModel.PollingStarted += OnPollingStarted;
 
             // Initialize focus settings sliders after component initialization
             Loaded += MainWindow_Loaded;
@@ -100,7 +103,11 @@ public partial class MainWindow : Window
         _isRestoringPassword = true;
         try
         {
-            var savedPassword = SettingsService.Instance.GetPassword();
+            // The ViewModel already loaded the password (environment variable override or settings file).
+            // Fall back to the settings file directly if the ViewModel has none.
+            var savedPassword = !string.IsNullOrEmpty(_viewModel.Password)
+                ? _viewModel.Password
+                : SettingsService.Instance.GetPassword();
             if (!string.IsNullOrEmpty(savedPassword))
             {
                 PasswordBox.Password = savedPassword;
@@ -126,15 +133,22 @@ public partial class MainWindow : Window
             // Small delay to let the UI fully render
             await Task.Delay(500);
 
-            // Execute the start command
+            // Execute the start command. Overlays are auto-launched via the
+            // PollingStarted event (OnPollingStarted), covering both manual and auto start.
             if (_viewModel.StartCommand.CanExecute(null))
             {
                 _viewModel.StartCommand.Execute(null);
-
-                // Auto-launch configured overlay windows
-                AutoLaunchOverlays();
             }
         }
+    }
+
+    /// <summary>
+    /// Auto-launches the configured overlay windows whenever polling begins
+    /// (manual Start button or auto-start on launch).
+    /// </summary>
+    private void OnPollingStarted(object? sender, EventArgs e)
+    {
+        AutoLaunchOverlays();
     }
 
     /// <summary>
@@ -740,11 +754,15 @@ public partial class MainWindow : Window
             _focusOverlay.Show();
             _focusOverlay.ShowFocusImmediate();
 
-            // Update with current focus if available
+            // Mirror current focus, OR clear the overlay's ctor-loaded sample data if there's nothing.
             if (_viewModel.CurrentFocusAchievement != null)
             {
                 var setName = _viewModel.HasMultipleSets ? _viewModel.SelectedSetName : null;
                 _focusOverlay.ViewModel.SetAchievement(_viewModel.CurrentFocusAchievement, setName);
+            }
+            else
+            {
+                _focusOverlay.ViewModel.ClearAchievement();
             }
         }
         else
@@ -1382,6 +1400,23 @@ public partial class MainWindow : Window
                     // Push user data to open User Info overlay
                     if (_userInfoOverlay?.IsVisible == true && _viewModel.UserSummary != null)
                         _userInfoOverlay.ViewModel.SetUserInfo(_viewModel.UserSummary);
+                    break;
+
+                case nameof(MainViewModel.CurrentFocusAchievement):
+                    // Mirror the ViewModel's focus state onto an open Focus overlay; clear it when there
+                    // is no achievement to focus on (so the sample/previous data doesn't linger).
+                    if (_focusOverlay?.IsVisible == true)
+                    {
+                        if (_viewModel.CurrentFocusAchievement != null)
+                        {
+                            var focusSetName = _viewModel.HasMultipleSets ? _viewModel.SelectedSetName : null;
+                            _ = _focusOverlay.TransitionToAchievement(_viewModel.CurrentFocusAchievement, focusSetName);
+                        }
+                        else
+                        {
+                            _focusOverlay.ViewModel.ClearAchievement();
+                        }
+                    }
                     break;
             }
         }

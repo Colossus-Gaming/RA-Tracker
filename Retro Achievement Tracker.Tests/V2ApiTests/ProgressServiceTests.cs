@@ -445,28 +445,82 @@ public class ProgressServiceTests
     }
 
     [Test]
-    public async Task V2ProgressService_GetUserRecentlyPlayedGames_ReturnsGames()
+    public async Task V2ProgressService_GetUserRecentAchievements_MapsPlayerAchievementsShape()
     {
+        // Real v2 shape: player-achievements carry unlock timing + a relationship to the achievement,
+        // whose details live in the included "achievements" resource.
         var jsonResponse = @"{
             ""data"": [
                 {
-                    ""type"": ""games"",
-                    ""id"": ""456"",
+                    ""type"": ""player-achievements"",
+                    ""id"": ""72476525"",
+                    ""attributes"": { ""unlockedAt"": ""2024-10-24T17:16:23.000000Z"", ""unlockedHardcoreAt"": null },
+                    ""relationships"": { ""achievement"": { ""data"": { ""type"": ""achievements"", ""id"": ""473207"" } } }
+                },
+                {
+                    ""type"": ""player-achievements"",
+                    ""id"": ""60763210"",
+                    ""attributes"": { ""unlockedAt"": ""2024-06-28T23:04:29.000000Z"", ""unlockedHardcoreAt"": ""2024-06-28T23:04:29.000000Z"" },
+                    ""relationships"": { ""achievement"": { ""data"": { ""type"": ""achievements"", ""id"": ""79936"" } } }
+                }
+            ],
+            ""included"": [
+                { ""type"": ""achievements"", ""id"": ""473207"", ""attributes"": { ""title"": ""Recent Cheevo"", ""points"": 5, ""pointsWeighted"": 12, ""badgeUrl"": ""http://b/473207.png"" } },
+                { ""type"": ""achievements"", ""id"": ""79936"", ""attributes"": { ""title"": ""Coin Collector"", ""points"": 5 } }
+            ]
+        }";
+
+        SetupMockResponse(jsonResponse);
+
+        using var service = new V2ProgressService(_v2Client);
+        var achievements = await service.GetUserRecentAchievementsAsync(TestUsername, 10);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(achievements, Has.Count.EqualTo(2));
+
+            var softcore = achievements.Single(a => a.AchievementId == 473207);
+            Assert.That(softcore.Title, Is.EqualTo("Recent Cheevo"));
+            Assert.That(softcore.Points, Is.EqualTo(5));
+            Assert.That(softcore.EarnedAt, Is.Not.Null);
+            Assert.That(softcore.EarnedAt!.Value.Date, Is.EqualTo(new DateTime(2024, 10, 24)));
+            Assert.That(softcore.IsHardcore, Is.False);
+
+            var hardcore = achievements.Single(a => a.AchievementId == 79936);
+            Assert.That(hardcore.Title, Is.EqualTo("Coin Collector"));
+            Assert.That(hardcore.IsHardcore, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task V2ProgressService_GetUserRecentlyPlayedGames_ReturnsGames()
+    {
+        // V2 player-games shape: the resource id is a player-game record id; the game id and details
+        // come from the included "game" resource (whose system is included in turn).
+        var jsonResponse = @"{
+            ""data"": [
+                {
+                    ""type"": ""player-games"",
+                    ""id"": ""999"",
                     ""attributes"": {
-                        ""title"": ""Test Game"",
-                        ""badgeUrl"": ""http://badge.url"",
                         ""achievementsUnlocked"": 5,
                         ""achievementsTotal"": 10,
                         ""lastPlayedAt"": ""2024-01-15T12:00:00Z""
                     },
                     ""relationships"": {
-                        ""system"": {
-                            ""data"": { ""type"": ""systems"", ""id"": ""1"" }
-                        }
+                        ""game"": { ""data"": { ""type"": ""games"", ""id"": ""456"" } }
                     }
                 }
             ],
             ""included"": [
+                {
+                    ""type"": ""games"",
+                    ""id"": ""456"",
+                    ""attributes"": { ""title"": ""Test Game"", ""badgeUrl"": ""http://badge.url"" },
+                    ""relationships"": {
+                        ""system"": { ""data"": { ""type"": ""systems"", ""id"": ""1"" } }
+                    }
+                },
                 {
                     ""type"": ""systems"",
                     ""id"": ""1"",
@@ -629,9 +683,9 @@ public class ProgressServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(featureFlags.UseV2ForMetadata, Is.True);
-            Assert.That(featureFlags.UseV2ForProgress, Is.False);
-            Assert.That(featureFlags.UseV2ForUserLookup, Is.False);
-            Assert.That(featureFlags.EnableMultiSet, Is.False);
+            Assert.That(featureFlags.UseV2ForProgress, Is.True);
+            Assert.That(featureFlags.UseV2ForUserLookup, Is.True);
+            Assert.That(featureFlags.EnableMultiSet, Is.True);
             Assert.That(featureFlags.EnableV1Fallback, Is.True);
         });
     }

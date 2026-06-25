@@ -9,6 +9,16 @@ namespace RATracker.WPF.Services;
 /// </summary>
 public class AchievementTrackingService : IDisposable
 {
+    /// <summary>
+    /// DEBUG / TESTING override. When &gt; 0, the tracker pins itself to this RetroAchievements
+    /// game ID every poll, ignoring whatever game the user is actually playing. Defaults to 0
+    /// (normal "currently playing" behavior); the running app sets it at startup (see
+    /// <c>App.OnStartup</c>), while unit tests leave it at 0.
+    /// <para>11270 = Final Fantasy VIII (PlayStation) — Core + 2 Bonus subsets, so the subset
+    /// dropdown and per-set alerts can be exercised without booting the game.</para>
+    /// </summary>
+    internal static long DebugForceGameId;
+
     private readonly IProgressService _progressService;
     private readonly ProgressStateTracker _stateTracker;
     private readonly string _username;
@@ -134,24 +144,47 @@ public class AchievementTrackingService : IDisposable
                 }
             }
 
-            if (CurrentUser == null || CurrentUser.LastGameID <= 0)
+            if (CurrentUser == null)
             {
-                Log($"Cannot poll: CurrentUser={CurrentUser != null}, LastGameID={CurrentUser?.LastGameID ?? 0}");
+                Log("Cannot poll: user summary unavailable");
                 result.Success = false;
                 return result;
             }
 
-            // Check recently played games
+            // Determine the current game from recently played games. (V2's user resource has no
+            // lastGameId, so we rely on the most-recently-played entry rather than a guard on it.)
             var recentlyPlayed = await _progressService.GetUserRecentlyPlayedGamesAsync(_username, 10, cancellationToken);
             if (recentlyPlayed.Count == 0)
             {
+                Log("No recently played games returned");
                 result.Success = true;
                 return result;
             }
 
-            var currentGameId = recentlyPlayed[0].GameId;
+            // Prefer the most-recently-played game that still has published achievements. Games
+            // whose entire set has been demoted/unpublished report TotalAchievements=0 and would
+            // otherwise leave the dashboard stuck at 0/0 with no metadata to show.
+            var pickedGame = recentlyPlayed.FirstOrDefault(g => g.TotalAchievements > 0) ?? recentlyPlayed[0];
+            var currentGameId = pickedGame.GameId;
+            var skippedCount = recentlyPlayed.IndexOf(pickedGame);
+
+            // DEBUG / TESTING override (see DebugForceGameId): pin the tracked game for subset
+            // testing, ignoring whatever the user is actually playing.
+            if (DebugForceGameId > 0)
+            {
+                Log($"[DEBUG] Game selection hardcoded to {DebugForceGameId}; ignoring actual current game {currentGameId} ({pickedGame.Title})");
+                currentGameId = DebugForceGameId;
+            }
+
             bool isNewGame = CurrentProgress == null || currentGameId != CurrentProgress.GameId;
-            Log($"Currently playing game ID {currentGameId}, isNewGame={isNewGame}");
+            if (DebugForceGameId <= 0 && skippedCount > 0)
+            {
+                Log($"Currently playing game ID {currentGameId} ({pickedGame.Title}); skipped {skippedCount} demoted entr{(skippedCount == 1 ? "y" : "ies")}; isNewGame={isNewGame}");
+            }
+            else if (DebugForceGameId <= 0)
+            {
+                Log($"Currently playing game ID {currentGameId}, isNewGame={isNewGame}");
+            }
 
             // Check for recent achievements to detect if we need a full refresh
             var recentAchievements = await _progressService.GetUserRecentAchievementsAsync(_username, 10, cancellationToken);
@@ -386,7 +419,10 @@ public class AchievementTrackingService : IDisposable
     #region Helper Methods
 
     /// <summary>
-    /// Creates a GameInfo from UserGameProgress for backwards compatibility with existing controllers.
+    /// Creates a GameInfo from UserGameProgress, grouping achievements into their sets
+    /// (Core / Bonus / Specialty / Exclusive) using the per-achievement set membership
+    /// populated during API mapping. When no set membership is available (e.g. the V1 API,
+    /// or a single-set game), the achievements are kept as a flat list.
     /// </summary>
     private static GameInfo CreateGameInfoFromProgress(UserGameProgress progress)
     {
@@ -394,46 +430,88 @@ public class AchievementTrackingService : IDisposable
         {
             Id = progress.GameId,
             Title = progress.GameTitle,
-            ConsoleName = progress.ConsoleName,
-            Achievements = progress.Achievements.ToList(),
+            // Setting ConsoleId triggers the v1 console-name lookup; the explicit name comes after.
+            ConsoleId = progress.ConsoleId,
+            BadgeUri = progress.BadgeUri,
+            ImageBoxArt = progress.ImageBoxArt,
+            ImageTitle = progress.ImageTitle,
+            ImageIngame = progress.ImageIngame,
+            Publisher = progress.Publisher,
+            Developer = progress.Developer,
+            Genre = progress.Genre,
+            Released = progress.Released,
             LastPlayed = progress.LastPlayed
         };
-
-        // Copy achievement sets if present (multi-set game support)
-        if (progress.HasMultipleSets || progress.AchievementSets.Count > 0)
+        if (!string.IsNullOrEmpty(progress.ConsoleName))
         {
-            foreach (var setProgress in progress.AchievementSets)
+            gameInfo.ConsoleName = progress.ConsoleName;
+        }
+
+        var achievements = progress.Achievements ?? new List<Achievement>();
+        var hasSetMembership = achievements.Any(a => a.SetId.HasValue);
+
+        if (!hasSetMembership)
+        {
+            // No subset information — keep the legacy flat list.
+            gameInfo.Achievements = achievements.ToList();
+            return gameInfo;
+        }
+
+        // Set metadata (name/type) from per-set progress records, keyed by set id.
+        var setMetadata = progress.AchievementSets
+            .GroupBy(s => s.SetId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var sets = new List<AchievementSet>();
+        foreach (var group in achievements.Where(a => a.SetId.HasValue).GroupBy(a => a.SetId!.Value))
+        {
+            var sample = group.First();
+            setMetadata.TryGetValue(group.Key, out var meta);
+
+            sets.Add(new AchievementSet
             {
-                gameInfo.AchievementSets.Add(new AchievementSet
+                Id = group.Key,
+                GameId = progress.GameId,
+                Name = meta?.SetName
+                       ?? sample.SetName
+                       ?? (sample.SetType == AchievementSetType.Core ? "Core" : sample.SetType.ToString()),
+                SetType = meta?.SetType ?? sample.SetType,
+                BadgeUrl = meta?.BadgeUrl ?? string.Empty,
+                // Sort by DisplayOrder so the "first locked" (the Focus achievement) is deterministic
+                // regardless of API response order; ties fall back to id.
+                Achievements = group.OrderBy(a => a.DisplayOrder).ThenBy(a => a.Id).ToList()
+            });
+        }
+
+        // Achievements without a set id are treated as Core.
+        var untagged = achievements.Where(a => !a.SetId.HasValue).ToList();
+        if (untagged.Count > 0)
+        {
+            var core = sets.FirstOrDefault(s => s.SetType == AchievementSetType.Core);
+            if (core != null)
+            {
+                core.Achievements.AddRange(untagged);
+                core.Achievements = core.Achievements.OrderBy(a => a.DisplayOrder).ThenBy(a => a.Id).ToList();
+            }
+            else
+            {
+                sets.Add(new AchievementSet
                 {
-                    Id = setProgress.SetId,
-                    Name = setProgress.SetName,
-                    SetType = setProgress.SetType,
                     GameId = progress.GameId,
-                    Achievements = progress.Achievements
-                        .Where(a => IsAchievementInSet(a, setProgress, progress))
-                        .ToList()
+                    Name = "Core",
+                    SetType = AchievementSetType.Core,
+                    Achievements = untagged.OrderBy(a => a.DisplayOrder).ThenBy(a => a.Id).ToList()
                 });
             }
         }
 
+        // Order: Core first, then Bonus / Specialty / Exclusive, then by id.
+        gameInfo.AchievementSets = sets
+            .OrderBy(s => s.SetType)
+            .ThenBy(s => s.Id)
+            .ToList();
+
         return gameInfo;
-    }
-
-    /// <summary>
-    /// Determines if an achievement belongs to a specific set.
-    /// This is a simplistic implementation - in a full implementation,
-    /// achievements would have a SetId property from the API.
-    /// </summary>
-    private static bool IsAchievementInSet(Achievement achievement, AchievementSetProgress setProgress, UserGameProgress progress)
-    {
-        // If only one set, all achievements belong to it
-        if (progress.AchievementSets.Count <= 1)
-            return true;
-
-        // For now, we distribute achievements to the core set by default
-        // This would need to be updated when the V2 API provides set membership
-        return setProgress.IsCore;
     }
 
     private void ThrowIfDisposed()

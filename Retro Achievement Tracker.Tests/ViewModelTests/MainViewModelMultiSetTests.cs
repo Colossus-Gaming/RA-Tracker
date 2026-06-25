@@ -14,7 +14,8 @@ public class MainViewModelMultiSetTests
     [SetUp]
     public void SetUp()
     {
-        _viewModel = new MainViewModel();
+        // Skip placeholder sample data so each test starts from a clean, deterministic state.
+        _viewModel = new MainViewModel(loadSampleData: false);
     }
 
     #region UpdateAvailableAchievementSets Tests
@@ -91,19 +92,24 @@ public class MainViewModelMultiSetTests
     }
 
     [Test]
-    public void CurrentGame_WhenChangedToSingleSetGame_ClearsAvailableSets()
+    public void CurrentGame_WhenChangedToSingleSetGame_ShowsSingleSet()
     {
         // Arrange - first set a multi-set game
         var multiSetGame = CreateMultiSetGame();
         _viewModel.CurrentGame = multiSetGame;
-        Assert.That(_viewModel.AvailableAchievementSets, Has.Count.GreaterThan(0));
+        Assert.That(_viewModel.AvailableAchievementSets, Has.Count.EqualTo(2));
 
         // Act - change to single-set game
         var singleSetGame = CreateSingleSetGame();
         _viewModel.CurrentGame = singleSetGame;
 
-        // Assert
-        Assert.That(_viewModel.AvailableAchievementSets, Is.Empty);
+        // Assert - the dropdown still surfaces the one (core) set so it stays visible on the dashboard
+        Assert.Multiple(() =>
+        {
+            Assert.That(_viewModel.HasMultipleSets, Is.False);
+            Assert.That(_viewModel.AvailableAchievementSets, Has.Count.EqualTo(1));
+            Assert.That(_viewModel.AvailableAchievementSets[0].SetType, Is.EqualTo(AchievementSetType.Core));
+        });
     }
 
     #endregion
@@ -243,13 +249,15 @@ public class MainViewModelMultiSetTests
         Assert.Multiple(() =>
         {
             Assert.That(_viewModel.HasMultipleSets, Is.False);
-            Assert.That(_viewModel.AvailableAchievementSets, Is.Empty);
+            // A legacy (no-set) game synthesizes a single Core set so the dropdown is still present.
+            Assert.That(_viewModel.AvailableAchievementSets, Has.Count.EqualTo(1));
+            Assert.That(_viewModel.AvailableAchievementSets[0].SetType, Is.EqualTo(AchievementSetType.Core));
             Assert.That(_viewModel.LockedAchievements, Has.Count.EqualTo(2));
         });
     }
 
     [Test]
-    public void SingleSetGame_SelectedSetNameIsNull()
+    public void SingleSetGame_SelectedSetNameReflectsCoreSet()
     {
         // Arrange
         var game = CreateSingleSetGame();
@@ -257,8 +265,26 @@ public class MainViewModelMultiSetTests
         // Act
         _viewModel.CurrentGame = game;
 
-        // Assert
-        Assert.That(_viewModel.SelectedSetName, Is.Null);
+        // Assert - single-set games still select their one set (named "Core" here)
+        Assert.That(_viewModel.SelectedSetName, Is.EqualTo("Core"));
+    }
+
+    [Test]
+    public void HasAchievementSets_ReflectsWhetherDropdownShouldShow()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(_viewModel.HasAchievementSets, Is.False, "No game loaded");
+
+            _viewModel.CurrentGame = CreateSingleSetGame();
+            Assert.That(_viewModel.HasAchievementSets, Is.True, "Single-set game still shows the dropdown");
+
+            _viewModel.CurrentGame = CreateMultiSetGame();
+            Assert.That(_viewModel.HasAchievementSets, Is.True, "Multiset game shows the dropdown");
+
+            _viewModel.CurrentGame = null;
+            Assert.That(_viewModel.HasAchievementSets, Is.False, "Cleared game hides the dropdown");
+        });
     }
 
     #endregion

@@ -12,8 +12,10 @@ namespace RATracker.WPF.Http.V2;
 /// </summary>
 public class V2Client : IDisposable
 {
-    private const string DefaultBaseUrl = "https://retroachievements.org";
-    private const string ApiPath = "/api/v2";
+    // The V2 JSON:API is served from the api. subdomain with a bare /v2 prefix
+    // (NOT retroachievements.org/api/v2 — that returns 404). Auth is the X-API-Key header.
+    private const string DefaultBaseUrl = "https://api.retroachievements.org";
+    private const string ApiPath = "/v2";
     private const string JsonApiMediaType = "application/vnd.api+json";
     private const string UserAgent = "RATracker/1.0 (.NET; WPF)";
 
@@ -309,6 +311,13 @@ public class V2Client : IDisposable
 
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         stopwatch.Stop();
+
+        // Diagnostic: log a truncated response body when logging is enabled (helps verify live JSON shapes).
+        if (_logger is not NullApiLogger)
+        {
+            var preview = content.Length > 1500 ? content[..1500] + "…(truncated)" : content;
+            Debug.WriteLine($"[V2BODY] {(int)response.StatusCode} {url} :: {preview}");
+        }
 
         // Detect Cloudflare challenge pages (can happen even on 200 status)
         if (content.Contains("Just a moment") || content.Contains("cf_chl_opt"))

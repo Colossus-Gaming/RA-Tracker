@@ -1,8 +1,10 @@
 # RetroAchievements API v2 Reference
 
-The v2 API is a JSON:API-compliant web API built on Laravel, actively deployed in production since December 2025. It runs in parallel with v1 — v1 is under an indefinite code freeze but continues to function without breaking changes. All new API capabilities are v2-only.
+> **Verified live (2026-05-29):** v2 is real and working, but the **base URL is `https://api.retroachievements.org/v2`** (the `api.` subdomain, bare `/v2` prefix) — NOT `retroachievements.org/api/v2`. Auth is the `X-API-Key` header + `Accept: application/vnd.api+json` (no browser session needed; the api subdomain isn't Cloudflare-challenged). Routes are **dasherized** (`player-games`, `player-achievements`, `player-achievement-sets`) and there is **no `/progress` route** — per-game progress is `player-games` filtered by `gameId`. Nested includes (e.g. `game.system`) are rejected with 400. Some field names below were reconstructed from RAWeb source; confirmed-in-app shapes are summarized in [../guides/v2-status.md](../guides/v2-status.md).
 
-**Base URL:** `https://retroachievements.org/api/v2/`
+The v2 API is a JSON:API-compliant web API built on Laravel, live in production. It runs in parallel with v1 — v1 is under an indefinite code freeze but continues to function without breaking changes.
+
+**Base URL:** `https://api.retroachievements.org/v2/`
 
 **Spec:** [JSON:API 1.1](https://jsonapi.org/)
 
@@ -49,7 +51,10 @@ All collection endpoints support:
 | Hubs | Yes | Yes | games, links | [hubs.md](hubs.md) |
 | Player Games | — | — | via users | [player-games.md](player-games.md) |
 | Player Achievement Sets | — | — | via users | [player-achievement-sets.md](player-achievement-sets.md) |
-| Game Hashes | — | — | via games (PR open) | [game-hashes.md](game-hashes.md) |
+| Game Hashes | — | — | via games (merged #4593) | [game-hashes.md](game-hashes.md) |
+| Player Achievements | Yes | — | via users, via achievements | see [README delta](#development-timeline) (#4633) |
+| Achievement Set Claims | Yes | — | via games, via users | see [README delta](#development-timeline) (#4865) |
+| User Awards | — | — | via users | see [README delta](#development-timeline) (#4765) |
 
 ## Subset Model
 
@@ -102,7 +107,22 @@ See [achievement-sets.md](achievement-sets.md) and [player-achievement-sets.md](
 | Feb 2, 2026 | [#4491](https://github.com/RetroAchievements/RAWeb/pull/4491) | Hub |
 | Feb 13, 2026 | [#4528](https://github.com/RetroAchievements/RAWeb/pull/4528) | PlayerGame |
 | Feb 23, 2026 | [#4562](https://github.com/RetroAchievements/RAWeb/pull/4562) | PlayerAchievementSet |
-| Open | [#4593](https://github.com/RetroAchievements/RAWeb/pull/4593) | GameHash |
+| Mar 18, 2026 | [#4593](https://github.com/RetroAchievements/RAWeb/pull/4593) | GameHash (`/v2/games/{id}/hashes`) |
+| Mar 26, 2026 | [#4633](https://github.com/RetroAchievements/RAWeb/pull/4633) | **PlayerAchievement** (`/v2/users/{user}/player-achievements`) — supports `filter[achievementSetId]`, `filter[unlockedFrom/To]` |
+| Apr 5, 2026 | [#4711](https://github.com/RetroAchievements/RAWeb/pull/4711) | Event + EventAward (`/v2/events`) |
+| Apr 25, 2026 | [#4765](https://github.com/RetroAchievements/RAWeb/pull/4765) | UserAwards / PlayerBadge (`/v2/users/{user}/awards`) |
+| May 5, 2026 | [#4818](https://github.com/RetroAchievements/RAWeb/pull/4818) | Comments (`/v2/{games,achievements}/{id}/comments`, `/v2/users/{user}/wall-comments`) |
+| May 13, 2026 | [#4865](https://github.com/RetroAchievements/RAWeb/pull/4865) | AchievementSetClaim (`/v2/{games,users}/{id}/achievement-set-claims`) |
+
+### Open / not yet merged (will 404 — do not wire until merged)
+
+| Opened | PR | Resource |
+|------|-----|----------|
+| Jun 12, 2026 | [#4979](https://github.com/RetroAchievements/RAWeb/pull/4979) | **AchievementSetVersion** (`/v2/achievement-sets/{set}/achievement-set-versions`) — per-set version-drift signal; the most subset-relevant open PR |
+| Jun 20, 2026 | [#5011](https://github.com/RetroAchievements/RAWeb/pull/5011) | User follow (`/v2/users/{user}/followers`, `/following`) |
+| Jun 20, 2026 | [#5012](https://github.com/RetroAchievements/RAWeb/pull/5012) | Tickets (`/v2/tickets`, `/v2/{achievements,games,users}/{id}/tickets`) |
+
+> **Delta research 2026-06-24** (verified against RAWeb master source). Still **missing** (re-confirmed 404/400, do not re-try): `GET /v2/games/{id}/achievements`, `GET /v2/achievement-sets/{id}/achievements`, `include=achievements` on a set, and `filter[achievementSetId]` on the bare `/v2/achievements` index (it works **only** on the player-achievements relationship, per #4633). The `filter[gameId]&include=achievementSet` workaround remains the only way to list a set's achievement *definitions*.
 
 ## Canonical Sources
 

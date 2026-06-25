@@ -4,7 +4,7 @@
 
 This resource is only accessible as a relationship endpoint on Games. There is no standalone index.
 
-**Status: PR open** — [#4593](https://github.com/RetroAchievements/RAWeb/pull/4593) (submitted Feb 24, 2026, not yet merged)
+**Status: merged & live** — [#4593](https://github.com/RetroAchievements/RAWeb/pull/4593) (merged 2026-03-18). Confirmed in master `app/Api/RouteServiceProvider.php` (delta research 2026-06-24).
 
 **V1 equivalent:** `API_GetGameHashes.php` ([v1](../v1/get-game-hashes.md))
 
@@ -18,14 +18,15 @@ This resource is only accessible as a relationship endpoint on Games. There is n
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `md5` | string | MD5 hash of the ROM |
-| `name` | string | ROM filename |
-| `labels` | array | Labels (converted from CSV to JSON array in v2) |
+| `raMd5` | string | MD5 hash of the ROM (named `raMd5` in the merged v2 resource — **not** `md5`) |
+| `name` | string | ROM filename / label |
 | `compatibility` | string | Compatibility status |
 | `patchUrl` | string | URL to required patch (if applicable) |
 
-**New in v2:** `labels` as a proper JSON array (was comma-separated string in v1), `compatibility` as a filterable field, soft-deleted hashes excluded.
+> **Corrected 2026-06-24:** the attribute is `raMd5`/`name`, per the merged PR. The earlier draft naming (`md5` + a `labels` array) came from an in-progress revision and was never the shipped shape. Re-confirm the full attribute set with a live `--probe-v2 GET /v2/games/{id}/hashes` before relying on `compatibility`/`patchUrl`.
+
+**New in v2:** `compatibility` as a filterable field; soft-deleted hashes excluded.
 
 ## Source
 
-- [PR #4593](https://github.com/RetroAchievements/RAWeb/pull/4593) (open)
+- [PR #4593](https://github.com/RetroAchievements/RAWeb/pull/4593) (merged 2026-03-18)

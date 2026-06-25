@@ -25,15 +25,56 @@ public class UserGameProgress
     /// </summary>
     public string ConsoleName { get; set; } = string.Empty;
 
+    /// <summary>The console/system numeric id.</summary>
+    public long ConsoleId { get; set; }
+
+    /// <summary>Game icon (badge) URL — shown in the dashboard "Current Game" card.</summary>
+    public string BadgeUri { get; set; } = string.Empty;
+
+    /// <summary>Box art image URL.</summary>
+    public string ImageBoxArt { get; set; } = string.Empty;
+
+    /// <summary>Title screen image URL.</summary>
+    public string ImageTitle { get; set; } = string.Empty;
+
+    /// <summary>In-game screenshot URL.</summary>
+    public string ImageIngame { get; set; } = string.Empty;
+
+    /// <summary>Publisher.</summary>
+    public string Publisher { get; set; } = string.Empty;
+
+    /// <summary>Developer.</summary>
+    public string Developer { get; set; } = string.Empty;
+
+    /// <summary>Genre.</summary>
+    public string Genre { get; set; } = string.Empty;
+
+    /// <summary>Release date string (varies per API: "YYYY-MM-DD" v1, ISO 8601 v2).</summary>
+    public string Released { get; set; } = string.Empty;
+
     /// <summary>
     /// Total number of achievements in the game (for the active set).
+    /// When not explicitly set, falls back to the count of the <see cref="Achievements"/> list,
+    /// so callers that only populate the list still get correct totals.
     /// </summary>
-    public int TotalAchievements { get; set; }
+    public int TotalAchievements
+    {
+        get => _totalAchievements ?? Achievements.Count;
+        set => _totalAchievements = value;
+    }
+    private int? _totalAchievements;
 
     /// <summary>
     /// Number of achievements earned by the user.
+    /// When not explicitly set, falls back to the count of earned achievements in the
+    /// <see cref="Achievements"/> list.
     /// </summary>
-    public int EarnedAchievements { get; set; }
+    public int EarnedAchievements
+    {
+        get => _earnedAchievements ?? Achievements.Count(a => a.DateEarned.HasValue);
+        set => _earnedAchievements = value;
+    }
+    private int? _earnedAchievements;
 
     /// <summary>
     /// Total points available in the game.
@@ -123,6 +164,15 @@ public class UserGameProgress
             GameId = gameInfo.Id,
             GameTitle = gameInfo.Title,
             ConsoleName = gameInfo.ConsoleName,
+            ConsoleId = gameInfo.ConsoleId,
+            BadgeUri = gameInfo.BadgeUri,
+            ImageBoxArt = gameInfo.ImageBoxArt,
+            ImageTitle = gameInfo.ImageTitle,
+            ImageIngame = gameInfo.ImageIngame,
+            Publisher = gameInfo.Publisher,
+            Developer = gameInfo.Developer,
+            Genre = gameInfo.Genre,
+            Released = gameInfo.Released,
             TotalAchievements = gameInfo.AchievementsPossible,
             EarnedAchievements = gameInfo.AchievementsEarned,
             TotalPoints = gameInfo.GamePointsPossible,
@@ -190,6 +240,11 @@ public class AchievementSetProgress
     /// Points earned in this set.
     /// </summary>
     public int EarnedPoints { get; set; }
+
+    /// <summary>
+    /// The badge/icon URL for this set (a subset has its own badge, distinct from the game badge).
+    /// </summary>
+    public string BadgeUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// Completion percentage for this set.

@@ -44,23 +44,23 @@ public class ServiceFactoryTests
     }
 
     [Test]
-    public void Constructor_WithNullApiKey_ThrowsArgumentException()
+    public void Constructor_WithNullApiKey_Succeeds()
     {
-        // Act & Assert
-        var ex = Assert.Throws<ArgumentException>(() =>
-            new ServiceFactory(TestUsername, null!));
-        
-        Assert.That(ex!.ParamName, Is.EqualTo("apiKey"));
+        // The API key is optional: session-cookie auth can be used instead, so a null
+        // key is normalized to empty rather than throwing.
+        Assert.DoesNotThrow(() =>
+        {
+            using var factory = new ServiceFactory(TestUsername, null!);
+        });
     }
 
     [Test]
-    public void Constructor_WithEmptyApiKey_ThrowsArgumentException()
+    public void Constructor_WithEmptyApiKey_Succeeds()
     {
-        // Act & Assert
-        var ex = Assert.Throws<ArgumentException>(() =>
-            new ServiceFactory(TestUsername, ""));
-        
-        Assert.That(ex!.ParamName, Is.EqualTo("apiKey"));
+        Assert.DoesNotThrow(() =>
+        {
+            using var factory = new ServiceFactory(TestUsername, "");
+        });
     }
 
     #endregion
@@ -249,18 +249,18 @@ public class FeatureFlagServiceTests
     #region Default Values Tests
 
     [Test]
-    public void DefaultConstructor_SetsConservativeDefaults()
+    public void DefaultConstructor_EnablesV2WithV1Fallback()
     {
         // Act
         var service = new FeatureFlagService();
 
-        // Assert - default values for safe rollout
+        // Assert - V2 is the default path for all operations, with V1 as a safety-net fallback.
         Assert.Multiple(() =>
         {
             Assert.That(service.UseV2ForMetadata, Is.True, "V2 should be enabled for metadata by default");
-            Assert.That(service.UseV2ForProgress, Is.False, "V2 should be disabled for progress by default");
-            Assert.That(service.UseV2ForUserLookup, Is.False, "V2 should be disabled for user lookup by default");
-            Assert.That(service.EnableMultiSet, Is.False, "Multi-set should be disabled by default");
+            Assert.That(service.UseV2ForProgress, Is.True, "V2 should be enabled for progress by default");
+            Assert.That(service.UseV2ForUserLookup, Is.True, "V2 should be enabled for user lookup by default");
+            Assert.That(service.EnableMultiSet, Is.True, "Multi-set should be enabled by default");
             Assert.That(service.EnableV1Fallback, Is.True, "V1 fallback should be enabled by default");
             Assert.That(service.EnableApiLogging, Is.False, "API logging should be disabled by default");
         });

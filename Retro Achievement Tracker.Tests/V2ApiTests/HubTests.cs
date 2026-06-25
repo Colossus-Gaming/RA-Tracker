@@ -365,7 +365,7 @@ public class HubTests
             "SendAsync",
             Times.Once(),
             ItExpr.Is<HttpRequestMessage>(req =>
-                req.RequestUri!.ToString().Contains("/api/v2/hubs")),
+                req.RequestUri!.ToString().Contains("/v2/hubs")),
             ItExpr.IsAny<CancellationToken>());
     }
 
@@ -381,7 +381,7 @@ public class HubTests
             "SendAsync",
             Times.Once(),
             ItExpr.Is<HttpRequestMessage>(req =>
-                req.RequestUri!.ToString().Contains("/api/v2/hubs/500")),
+                req.RequestUri!.ToString().Contains("/v2/hubs/500")),
             ItExpr.IsAny<CancellationToken>());
     }
 
@@ -397,7 +397,7 @@ public class HubTests
             "SendAsync",
             Times.Once(),
             ItExpr.Is<HttpRequestMessage>(req =>
-                req.RequestUri!.ToString().Contains("/api/v2/hubs/500/games")),
+                req.RequestUri!.ToString().Contains("/v2/hubs/500/games")),
             ItExpr.IsAny<CancellationToken>());
     }
 

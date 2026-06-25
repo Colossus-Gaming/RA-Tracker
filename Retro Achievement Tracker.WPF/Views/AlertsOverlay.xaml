@@ -13,8 +13,7 @@ mc:Ignorable="d"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
-        Topmost="True"
-        ShowInTaskbar="False"
+        ShowInTaskbar="True"
         ResizeMode="CanResizeWithGrip"
         SizeChanged="Window_SizeChanged"
         d:DataContext="{d:DesignInstance Type=vm:AlertsViewModel, IsDesignTimeCreatable=True}">
@@ -84,7 +83,7 @@ mc:Ignorable="d"
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding BorderEnabled}" Value="True">
                             <Setter Property="BorderThickness" Value="3"/>
-                            <Setter Property="BorderBrush" Value="{Binding BorderColor}"/>
+                            <Setter Property="BorderBrush" Value="{Binding EffectiveBorderColor}"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
@@ -94,12 +93,13 @@ mc:Ignorable="d"
                 <DropShadowEffect BlurRadius="20" ShadowDepth="5" Opacity="0.7"/>
             </Border.Effect>
             
+            <Grid>
             <Grid Margin="15">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                
+
                 <!-- Badge -->
                 <Border Grid.Column="0"
                         CornerRadius="{Binding BadgeCornerRadiusValue}"
@@ -232,6 +232,25 @@ mc:Ignorable="d"
                             VerticalTextAlignment="Center"/>
                     </Grid>
                 </Grid>
+            </Grid>
+
+            <!-- Set-type badge (shown only for non-core achievement notifications) -->
+            <Border HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,-6,-6,0"
+                    Padding="8,2"
+                    CornerRadius="8"
+                    Background="{Binding SetBadgeBackground}"
+                    Visibility="{Binding SetBadgeVisible, Converter={StaticResource BoolToVis}}">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="6" ShadowDepth="1" Opacity="0.6"/>
+                </Border.Effect>
+                <TextBlock Text="{Binding SetBadgeText}"
+                           Foreground="White"
+                           FontFamily="Segoe UI"
+                           FontWeight="Bold"
+                           FontSize="12"/>
+            </Border>
             </Grid>
         </Border>
     </Canvas>

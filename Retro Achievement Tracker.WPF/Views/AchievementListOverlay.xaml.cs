@@ -37,6 +37,8 @@ public partial class AchievementListOverlay : Window
 
         ViewModel = new AchievementListViewModel();
         DataContext = ViewModel;
+        Width = ViewModel.WindowWidth;
+        Height = ViewModel.WindowHeight;
         _settingsService = SettingsService.Instance;
 
         _showAnimation = (Storyboard)FindResource("ShowAnimation");
@@ -89,6 +91,7 @@ public partial class AchievementListOverlay : Window
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (_isUpdatingSize) return;
+        if (!IsLoaded) return;
 
         _isUpdatingSize = true;
         ViewModel.WindowWidth = e.NewSize.Width;

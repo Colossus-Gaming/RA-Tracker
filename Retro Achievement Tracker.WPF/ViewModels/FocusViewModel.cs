@@ -764,6 +764,20 @@ public class FocusViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Clears the focus display to an empty/idle state (no achievement). Used when the player has
+    /// no focusable achievement (e.g. game has 0 locked achievements, or polling has just started).
+    /// </summary>
+    public void ClearAchievement()
+    {
+        IsMasteryMode = false;
+        Title = string.Empty;
+        Description = string.Empty;
+        Points = string.Empty;
+        BadgeUri = string.Empty;
+        CurrentSetName = null;
+    }
+
+    /// <summary>
     /// Sets a sample achievement for demo purposes.
     /// </summary>
     public void SetSampleAchievement()
