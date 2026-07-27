@@ -3,10 +3,9 @@ name: CI
 # Tests only — this workflow never publishes anything. Releasing happens exclusively from a tag on
 # main (see release.yml).
 #
-# Deliberately NOT triggered by pushes to main: everything reaching main arrives via a pull request
-# that already ran this workflow, and the release workflow re-runs the tests before publishing. A
-# push trigger on main would just duplicate those runs, which costs real money on a private repo
-# where Windows runners bill at a 2x multiplier.
+# Deliberately NOT triggered by pushes to main: main is protected and only accepts pull requests,
+# which already ran this workflow, and the release workflow re-runs the tests before publishing. A
+# push trigger on main would just duplicate those runs for no added signal.
 on:
   push:
     branches: [develop]
