@@ -318,6 +318,9 @@ public class RecentlyPlayedGame
 
     /// <summary>
     /// Achievements earned by the user.
+    /// <para><b>V1 only.</b> The v2 <c>player-games</c> resource carries no unlock count (verified
+    /// live — the attribute is simply absent), so on the v2 path this stays 0. Don't display it
+    /// without checking which source populated it; use the per-game progress call for a real count.</para>
     /// </summary>
     public int EarnedAchievements { get; set; }
 

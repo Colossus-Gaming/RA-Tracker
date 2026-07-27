@@ -1,8 +1,11 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Windows;
+using Newtonsoft.Json.Linq;
 using RATracker.WPF.Http.V2;
 using RATracker.WPF.Services;
+using Velopack;
 
 namespace RATracker.WPF;
 
@@ -11,33 +14,26 @@ namespace RATracker.WPF;
 /// </summary>
 public partial class App : Application
 {
+#if DEV_TOOLS
     private TextWriterTraceListener? _fileListener;
+#endif
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // MUST be the first thing that runs. Velopack re-invokes this exe with its own hook
+        // arguments during install, update and uninstall; if anything else runs first (argument
+        // parsing, showing a window) those hooks misbehave. The packaging step also refuses to
+        // build unless this call is present.
+        VelopackApp.Build().Run();
+
         base.OnStartup(e);
 
-        // --log-to-file <path>: redirect all Debug/Trace output to a file (for integration tests)
         var args = e.Args;
-        for (int i = 0; i < args.Length - 1; i++)
-        {
-            if (args[i] == "--log-to-file")
-            {
-                var logPath = args[i + 1];
-                var dir = Path.GetDirectoryName(logPath);
-                if (!string.IsNullOrEmpty(dir))
-                    Directory.CreateDirectory(dir);
 
-                // Open with FileShare.Read so integration tests can read the log while the app writes
-                var logStream = new FileStream(logPath, FileMode.Create, FileAccess.Write, FileShare.Read);
-                _fileListener = new TextWriterTraceListener(logStream) { TraceOutputOptions = TraceOptions.Timestamp };
-                // Debug.WriteLine routes through Trace.Listeners in .NET 8
-                Trace.Listeners.Add(_fileListener);
-                Trace.AutoFlush = true;
-                Debug.WriteLine($"[App] File logging enabled: {logPath}");
-                break;
-            }
-        }
+#if DEV_TOOLS
+        // Set up file logging first so anything the probes or a crash produce is captured.
+        ConfigureFileLogging(args);
+#endif
 
         // Global crash logging: capture unhandled exceptions from the UI dispatcher, background
         // threads, and faulted tasks so they land in the log instead of silently killing the app.
@@ -54,34 +50,16 @@ public partial class App : Application
             args.SetObserved();
         };
 
-        // --probe-v2 "<path1>;<path2>": GET raw v2 endpoints with the saved API key and log the bodies,
-        // then exit. Diagnostic tool for discovering live JSON:API response shapes (no login needed).
-        var probeIdx = Array.IndexOf(args, "--probe-v2");
-        if (probeIdx >= 0 && probeIdx < args.Length - 1)
-        {
-            RunV2Probe(args[probeIdx + 1]);
-            Shutdown();
-            return;
-        }
-
-        // --probe-game "<id1>;<id2>;...": runs the full Hybrid progress flow for each game id and
-        // prints a structured summary (sets, types, achievement counts, unlocks). Used to validate
-        // multiset wiring against real games without playing them.
-        var gameIdx = Array.IndexOf(args, "--probe-game");
-        if (gameIdx >= 0 && gameIdx < args.Length - 1)
-        {
-            RunGameProbe(args[gameIdx + 1]);
-            Shutdown();
-            return;
-        }
+#if DEV_TOOLS
+        // Diagnostic entry points. Each runs instead of the app and then exits.
+        if (TryRunDeveloperTool(args)) return;
+#endif
 
         try
         {
-            // DEBUG: pin the tracked game to Guitar Hero: Warriors of Rock (34685) for subset/dropdown
-            // stress testing — 4 sets incl. a 706-achievement set. Remove this line to restore normal
-            // "currently playing" tracking.
-            AchievementTrackingService.DebugForceGameId = 34685;
-
+            // No game pin: the tracker follows the most recently played game. To pin one while
+            // developing, set AchievementTrackingService.DebugForceGameId here (Debug builds only —
+            // see the DEV_TOOLS block below) and remove it again before committing.
             var mainWindow = new MainWindow();
             mainWindow.Show();
         }
@@ -103,6 +81,11 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Records an unhandled exception. Goes to the debug trace (useful with --log-to-file during
+    /// development) and to <see cref="CrashLogger"/>, which writes to disk in every configuration so
+    /// a Production build still leaves something a tester can send back.
+    /// </summary>
     private static void LogExceptionChain(string source, Exception? ex)
     {
         Debug.WriteLine($"[CRASH] {source}: {ex?.GetType().FullName}: {ex?.Message}");
@@ -115,12 +98,224 @@ public partial class App : Application
             current = current.InnerException;
             depth++;
         }
+
+        CrashLogger.Write(source, ex);
+    }
+
+#if DEV_TOOLS
+
+    #region Developer tools (Debug builds only)
+
+    /// <summary>
+    /// <c>--log-to-file &lt;path&gt;</c>: redirects Debug/Trace output to a file. Used by the
+    /// integration tests and by the probes below.
+    /// </summary>
+    private void ConfigureFileLogging(string[] args)
+    {
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            if (args[i] != "--log-to-file") continue;
+
+            var logPath = args[i + 1];
+            var dir = Path.GetDirectoryName(logPath);
+            if (!string.IsNullOrEmpty(dir))
+                Directory.CreateDirectory(dir);
+
+            // FileShare.Read so a test harness can read the log while the app is still writing it.
+            var logStream = new FileStream(logPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+            _fileListener = new TextWriterTraceListener(logStream) { TraceOutputOptions = TraceOptions.Timestamp };
+            // Debug.WriteLine routes through Trace.Listeners in .NET 8.
+            Trace.Listeners.Add(_fileListener);
+            Trace.AutoFlush = true;
+            Debug.WriteLine($"[App] File logging enabled: {logPath}");
+            return;
+        }
     }
 
     /// <summary>
-    /// Diagnostic: issues raw GETs against the v2 API (semicolon-separated relative paths) using the
-    /// saved/env API key and logs the response bodies via the [V2BODY] logger.
+    /// Dispatches the diagnostic command-line entry points. Returns true when one ran, meaning the
+    /// app should not start normally.
+    /// <list type="bullet">
+    /// <item><c>--probe-v2 "&lt;path&gt;;&lt;path&gt;"</c> — raw v2 GETs, logs response bodies.</item>
+    /// <item><c>--probe-game "&lt;id&gt;;&lt;id&gt;"</c> — full progress flow per game id.</item>
+    /// <item><c>--probe-alerts "&lt;kind&gt;;&lt;video&gt;;…"</c> — fires one custom alert.</item>
+    /// <item><c>--find-game "&lt;text&gt;"</c> — searches the user's library by title.</item>
+    /// </list>
     /// </summary>
+    private bool TryRunDeveloperTool(string[] args)
+    {
+        var probeIdx = Array.IndexOf(args, "--probe-v2");
+        if (probeIdx >= 0 && probeIdx < args.Length - 1)
+        {
+            RunV2Probe(args[probeIdx + 1]);
+            Shutdown();
+            return true;
+        }
+
+        // Leaves the overlay up rather than shutting down, so the alert can be watched.
+        var alertsIdx = Array.IndexOf(args, "--probe-alerts");
+        if (alertsIdx >= 0 && alertsIdx < args.Length - 1)
+        {
+            RunAlertsProbe(args[alertsIdx + 1]);
+            return true;
+        }
+
+        var findIdx = Array.IndexOf(args, "--find-game");
+        if (findIdx >= 0 && findIdx < args.Length - 1)
+        {
+            RunFindGameProbe(args[findIdx + 1]);
+            Shutdown();
+            return true;
+        }
+
+        var gameIdx = Array.IndexOf(args, "--probe-game");
+        if (gameIdx >= 0 && gameIdx < args.Length - 1)
+        {
+            RunGameProbe(args[gameIdx + 1]);
+            Shutdown();
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Diagnostic: finds games in the user's library whose title contains <paramref name="search"/>,
+    /// reporting each match's game id and unlock progress.
+    /// </summary>
+    private static void RunFindGameProbe(string search)
+    {
+        var username = EnvironmentCredentials.GetUsername() ?? SettingsService.Instance.Settings.Username;
+        var apiKey = EnvironmentCredentials.GetApiKey() ?? SettingsService.Instance.GetApiKey();
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(apiKey))
+        {
+            Debug.WriteLine("[FindGame] No username/apiKey available.");
+            return;
+        }
+
+        Task.Run(async () =>
+        {
+            using var client = new V2Client(apiKey!);
+            int page = 1, scanned = 0, matches = 0;
+
+            while (page <= 50) // safety cap; 50 * 100 covers any realistic library
+            {
+                var query = V2QueryBuilder.Create()
+                    .Include("game")
+                    .PageSize(100)
+                    .Page(page)
+                    .SortDescending("lastPlayedAt");
+
+                var document = await client.GetRelationshipAsync("users", username!, "player-games", query);
+                if (document.HasErrors) break;
+
+                var included = document.GetIncludedIndex();
+                foreach (var record in document.GetResourceCollection())
+                {
+                    var gameRef = record.GetRelationship("game")?.GetSingleIdentifier();
+                    if (gameRef == null) continue;
+
+                    included.TryGetValue((gameRef.Type, gameRef.Id), out var game);
+                    var title = game?.GetAttribute<string>("title") ?? string.Empty;
+                    scanned++;
+
+                    if (title.IndexOf(search, StringComparison.OrdinalIgnoreCase) < 0) continue;
+
+                    // player-games does NOT carry an unlock count (verified live: the attribute is
+                    // absent, so a "?? 0" here would report every game as 0 earned). Print "?" and
+                    // leave the authoritative count to --probe-game, which sources it from v1.
+                    var earned = record.GetAttribute<int?>("achievementsUnlocked")
+                                 ?? record.GetAttribute<int?>("achievementsUnlockedHardcore");
+                    var total = game?.GetAttribute<int?>("achievementsPublished") ?? 0;
+                    var lastPlayed = record.GetAttribute<string>("lastPlayedAt") ?? "?";
+
+                    Debug.WriteLine($"[FindGame] id={gameRef.Id} \"{title}\" " +
+                                    $"earned={(earned.HasValue ? earned.Value.ToString(CultureInfo.InvariantCulture) : "?")}/{total} " +
+                                    $"lastPlayed={lastPlayed}");
+                    matches++;
+                }
+
+                var lastPage = document.Meta?["page"]?["lastPage"]?.Value<int>() ?? page;
+                if (page >= lastPage) break;
+                page++;
+            }
+
+            Debug.WriteLine($"[FindGame] {matches} match(es) for \"{search}\" across {scanned} played game(s)");
+        }).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Diagnostic: shows the Alerts overlay and plays a single custom alert with an explicit
+    /// configuration. Applies the settings to the overlay's view model only — nothing is persisted,
+    /// so probing never disturbs the saved configuration.
+    /// </summary>
+    private static void RunAlertsProbe(string spec)
+    {
+        var parts = spec.Split(';', StringSplitOptions.TrimEntries);
+        string Part(int i, string fallback) => parts.Length > i && parts[i].Length > 0 ? parts[i] : fallback;
+
+        var isMastery = Part(0, "achievement").Equals("mastery", StringComparison.OrdinalIgnoreCase);
+        var video = Part(1, string.Empty);
+        var inv = CultureInfo.InvariantCulture;
+
+        var overlay = new Views.AlertsOverlay();
+        var vm = overlay.ViewModel;
+
+        var x = double.Parse(Part(2, "0"), inv);
+        var y = double.Parse(Part(3, "0"), inv);
+        var scale = double.Parse(Part(4, "1"), inv);
+        var inMs = int.Parse(Part(5, "0"), inv);
+        var outMs = int.Parse(Part(6, "5200"), inv);
+        var inDir = Enum.Parse<ViewModels.AnimationDirection>(Part(7, "Static"), ignoreCase: true);
+        var outDir = Enum.Parse<ViewModels.AnimationDirection>(Part(8, "Up"), ignoreCase: true);
+
+        if (isMastery)
+        {
+            vm.CustomMasteryEnabled = true;
+            vm.CustomMasteryVideoPath = video;
+            vm.CustomMasteryX = x;
+            vm.CustomMasteryY = y;
+            vm.CustomMasteryScale = scale;
+            vm.CustomMasteryInTime = inMs;
+            vm.CustomMasteryOutTime = outMs;
+            vm.MasteryInDirection = inDir;
+            vm.MasteryOutDirection = outDir;
+        }
+        else
+        {
+            vm.CustomAchievementEnabled = true;
+            vm.CustomAchievementVideoPath = video;
+            vm.CustomAchievementX = x;
+            vm.CustomAchievementY = y;
+            vm.CustomAchievementScale = scale;
+            vm.CustomAchievementInTime = inMs;
+            vm.CustomAchievementOutTime = outMs;
+            vm.AchievementInDirection = inDir;
+            vm.AchievementOutDirection = outDir;
+        }
+
+        Debug.WriteLine($"[AlertsProbe] kind={(isMastery ? "mastery" : "achievement")} video=\"{video}\" " +
+                        $"x={x} y={y} scale={scale} in={inMs}ms out={outMs}ms inDir={inDir} outDir={outDir}");
+
+        overlay.Loaded += async (_, _) =>
+        {
+            overlay.Left = 300;
+            overlay.Top = 200;
+
+            if (isMastery)
+            {
+                await overlay.ShowTestMasteryNotification();
+            }
+            else
+            {
+                await overlay.ShowTestAchievementNotification();
+            }
+
+            Debug.WriteLine("[AlertsProbe] alert finished");
+        };
+        overlay.Show();
+    }
+
     private static void RunV2Probe(string pathsArg)
     {
         var apiKey = EnvironmentCredentials.GetApiKey() ?? SettingsService.Instance.GetApiKey();
@@ -226,10 +421,17 @@ public partial class App : Application
         }).GetAwaiter().GetResult();
     }
 
+    #endregion
+
+#endif
+
     protected override void OnExit(ExitEventArgs e)
     {
+        Debug.WriteLine($"[App] OnExit reached (code {e.ApplicationExitCode})");
+#if DEV_TOOLS
         _fileListener?.Flush();
         _fileListener?.Dispose();
+#endif
         base.OnExit(e);
     }
 }

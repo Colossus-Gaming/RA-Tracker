@@ -793,7 +793,7 @@ public class FocusViewModel : ViewModelBase
         Title = "Welcome to the Club";
         Description = "Complete the first level and join the ranks of true retro gamers!";
         Points = "10";
-        BadgeUri = "https://media.retroachievements.org/Badge/00001.png";
+        BadgeUri = "https://media.retroachievements.org/Badge/00000.png";
         CurrentSetName = null;
     }
 

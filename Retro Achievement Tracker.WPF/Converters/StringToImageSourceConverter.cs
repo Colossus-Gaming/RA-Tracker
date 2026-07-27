@@ -20,6 +20,17 @@ public class StringToImageSourceConverter : IValueConverter
         if (value is not string uri || string.IsNullOrWhiteSpace(uri))
             return null;
 
+        // Serve the pre-downloaded, decoded badge if it's already in the shared cache (instant, no
+        // network). Populated by BadgeImageCache.Prefetch on set load and by any dashboard badge
+        // that has already loaded the same URL.
+        var cached = BadgeImageCache.Get(uri);
+        if (cached != null)
+            return cached;
+
+        // Not cached yet: fall back to WPF's own async download for this binding, and warm the
+        // shared cache in the background so the next surface to ask for it gets it instantly.
+        BadgeImageCache.Prefetch(new[] { uri });
+
         try
         {
             return new BitmapImage(new Uri(uri, UriKind.RelativeOrAbsolute));

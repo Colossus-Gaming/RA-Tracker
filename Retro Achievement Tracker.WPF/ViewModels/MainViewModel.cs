@@ -373,6 +373,39 @@ public class MainViewModel : ViewModelBase
     public bool HasApiStatus => !string.IsNullOrEmpty(ApiStatusText);
 
     /// <summary>
+    /// Update status for the header (download progress, or a staged update awaiting restart).
+    /// </summary>
+    public string UpdateStatusText
+    {
+        get => _updateStatusText;
+        set
+        {
+            if (SetProperty(ref _updateStatusText, value))
+                OnPropertyChanged(nameof(HasUpdateStatus));
+        }
+    }
+    private string _updateStatusText = string.Empty;
+
+    /// <summary>Whether an update message should be shown.</summary>
+    public bool HasUpdateStatus => !string.IsNullOrEmpty(UpdateStatusText);
+
+    /// <summary>
+    /// Kicks off a background update check. Never blocks startup and never restarts the app —
+    /// anything found is staged for the next close (see <see cref="UpdateService"/>).
+    /// </summary>
+    public void StartUpdateCheck()
+    {
+        var settings = SettingsService.Instance.Settings;
+        if (!settings.AutoUpdateEnabled) return;
+
+        var updates = new UpdateService();
+        updates.StatusChanged += (_, status) =>
+            System.Windows.Application.Current?.Dispatcher.Invoke(() => UpdateStatusText = status);
+
+        _ = updates.CheckAndStageAsync(settings.UpdateToPrereleases);
+    }
+
+    /// <summary>
     /// Whether the app is currently using V1 as a fallback (V2 failed).
     /// </summary>
     public bool IsUsingV1Fallback
@@ -487,6 +520,7 @@ public class MainViewModel : ViewModelBase
             if (SetProperty(ref _currentGame, value))
             {
                 UpdateAchievementLists();
+                PrefetchCurrentSetBadges();
                 OnPropertiesChanged(
                     nameof(GameTitle),
                     nameof(GameConsole),
@@ -603,6 +637,9 @@ public class MainViewModel : ViewModelBase
                     nameof(GameCompletionText),
                     nameof(IsMastered));
 
+                // Switching sets swaps the whole visible badge list, so warm the new one.
+                PrefetchCurrentSetBadges();
+
                 // Save the selected set to settings
                 SaveSelectedSetToSettings(value);
 
@@ -714,6 +751,22 @@ public class MainViewModel : ViewModelBase
     /// </summary>
     public IReadOnlyList<Achievement> CurrentSetAchievements =>
         GetAchievementsForCurrentSet() ?? new List<Achievement>();
+
+    /// <summary>
+    /// Warms the shared badge cache for the set currently on screen, so an unlock reveal (and every
+    /// overlay that shows a badge) has a decoded image ready instead of waiting on the CDN.
+    /// <para>Runs on game and set changes rather than only when the Cheevos Set overlay opens, so the
+    /// Alerts, Focus and Recent overlays benefit even when that overlay is closed. Capped at the
+    /// cache size so a huge set (Guitar Hero's core set is 634) can't evict its own earlier badges.</para>
+    /// </summary>
+    private void PrefetchCurrentSetBadges()
+    {
+        var achievements = GetAchievementsForCurrentSet();
+        if (achievements == null || achievements.Count == 0) return;
+
+        Converters.BadgeImageCache.Prefetch(
+            achievements.Take(Converters.BadgeImageCache.Capacity).Select(a => a.BadgeUri));
+    }
 
     /// <summary>
     /// Gets the achievements for the currently selected set, or all achievements if no multi-set support.
@@ -1238,7 +1291,7 @@ public class MainViewModel : ViewModelBase
         // Create sample achievements for core set - some locked, some unlocked
         var coreAchievements = new List<Achievement>
         {
-            new Achievement { Id = 1, Title = "First Steps", Description = "Complete the tutorial", Points = 5, BadgeUri = "https://media.retroachievements.org/Badge/00001.png", DateEarned = DateTime.Now.AddHours(-2) },
+            new Achievement { Id = 1, Title = "First Steps", Description = "Complete the tutorial", Points = 5, BadgeUri = "https://media.retroachievements.org/Badge/00000.png", DateEarned = DateTime.Now.AddHours(-2) },
             new Achievement { Id = 2, Title = "Explorer", Description = "Discover a hidden area", Points = 10, BadgeUri = "https://media.retroachievements.org/Badge/00002.png", DateEarned = DateTime.Now.AddHours(-1) },
             new Achievement { Id = 999999, Title = "The Absolutely Incredible Master of All Gaming Challenges!", Description = "Defeat the final boss without taking damage, without using healing items, without leveling up past level 10, without equipping any armor or accessories, on Hard difficulty or higher, within 30 minutes of starting the battle, while keeping all party membe", Points = 50, BadgeUri = "https://media.retroachievements.org/Badge/00003.png" },
             new Achievement { Id = 4, Title = "Speed Demon", Description = "Complete level 1 in under 60 seconds", Points = 25, BadgeUri = "https://media.retroachievements.org/Badge/00004.png" },
@@ -1845,6 +1898,20 @@ public class MainViewModel : ViewModelBase
 
     private void TestAchievementAlert()
     {
+        // Test with the achievement you're currently focused on, so you preview ITS unlock — the Alerts
+        // notification AND the Cheevos Set list badge flip + gold-glow. If everything is already unlocked
+        // (no focus), use the most recently completed one. The list re-syncs on the next poll.
+        var target = CurrentFocusAchievement
+            ?? CurrentSetAchievements
+                .Where(a => a.DateEarned.HasValue)
+                .OrderByDescending(a => a.DateEarned)
+                .FirstOrDefault();
+        if (target != null)
+        {
+            AchievementUnlocked?.Invoke(this, target);
+            return;
+        }
+
         // Create a sample core achievement for testing
         var sample = new Achievement
         {

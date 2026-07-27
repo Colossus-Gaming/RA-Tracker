@@ -10,7 +10,7 @@ xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebVi
 mc:Ignorable="d"
 Title="Retro Achievement Tracker"
 Height="790" Width="900"
-        MinHeight="760" MinWidth="800"
+        ResizeMode="CanMinimize"
         Background="#1E1E1E"
         WindowStartupLocation="CenterScreen"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=True}">
@@ -296,6 +296,31 @@ Height="790" Width="900"
             <Setter Property="Margin" Value="10"/>
         </Style>
 
+        <!-- Rounded completion bar. Uses a real ProgressBar so the fill is a proportion of the track
+             rather than a pixel width — the previous Border bound its Width directly to the 0-100
+             percentage, so the bar could never exceed 100px however wide the card was. -->
+        <Style x:Key="CompletionBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="8"/>
+            <Setter Property="Minimum" Value="0"/>
+            <Setter Property="Maximum" Value="100"/>
+            <Setter Property="Background" Value="#3C3C3C"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentGreen}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="4"/>
+                            <!-- ProgressBar sizes PART_Indicator against PART_Track; both must exist. -->
+                            <Border x:Name="PART_Track"/>
+                            <Border x:Name="PART_Indicator" HorizontalAlignment="Left"
+                                    Background="{TemplateBinding Foreground}" CornerRadius="4"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Section Header -->
         <Style x:Key="SectionHeader" TargetType="TextBlock">
             <Setter Property="FontSize" Value="18"/>
@@ -384,6 +409,14 @@ Height="790" Width="900"
                         <TextBlock AutomationProperties.AutomationId="SessionStatusText" Text="{Binding SessionStatus}" Foreground="{StaticResource TextMuted}" FontSize="11"/>
                         <TextBlock Text=" | " Foreground="{StaticResource TextMuted}" FontSize="11"
                                    Visibility="{Binding HasApiStatus, Converter={StaticResource BoolToVis}}"/>
+                        <!-- Staged-update notice. Updates never apply mid-session, so this is how the
+                             user learns one is waiting for the next restart. -->
+                        <TextBlock Text=" | " Foreground="{StaticResource TextMuted}" FontSize="11"
+                                   Visibility="{Binding HasUpdateStatus, Converter={StaticResource BoolToVis}}"/>
+                        <TextBlock AutomationProperties.AutomationId="UpdateStatusText"
+                                   Text="{Binding UpdateStatusText}" FontSize="11"
+                                   Foreground="{StaticResource AccentGold}"
+                                   Visibility="{Binding HasUpdateStatus, Converter={StaticResource BoolToVis}}"/>
                         <TextBlock AutomationProperties.AutomationId="ApiStatusText" Text="{Binding ApiStatusText}" FontSize="11">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
@@ -399,19 +432,54 @@ Height="790" Width="900"
                     </StackPanel>
                 </StackPanel>
 
-                <!-- User Profile (when logged in) -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" 
+                <!-- User Profile (when logged in). This carries the whole user summary — motto, rank,
+                     points, true points — because there is no longer a User Info dashboard card; the
+                     handful of fields didn't warrant a panel of their own. -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
                             Visibility="{Binding HasUserInfo, Converter={StaticResource BoolToVis}}">
                     <StackPanel VerticalAlignment="Center" Margin="0,0,10,0" HorizontalAlignment="Right">
-                        <TextBlock Text="{Binding UserDisplayName}" 
-                                   FontWeight="Bold" 
+                        <TextBlock Text="{Binding UserDisplayName}"
+                                   FontSize="15"
+                                   FontWeight="Bold"
                                    Foreground="{StaticResource TextPrimary}"
                                    HorizontalAlignment="Right"/>
-                        <TextBlock Text="{Binding UserRank}" 
-                                   Foreground="{StaticResource AccentGold}"
-                                   HorizontalAlignment="Right"/>
+
+                        <!-- Motto is optional; collapse it rather than leaving a blank line. Trimmed
+                             so a long motto can't push the avatar off the header at MinWidth. -->
+                        <TextBlock Text="{Binding UserMotto}"
+                                   FontSize="11" FontStyle="Italic"
+                                   Foreground="{StaticResource TextMuted}"
+                                   HorizontalAlignment="Right"
+                                   MaxWidth="260" TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding UserMotto}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UserMotto}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Rank / points / true points, one line to stay compact next to the avatar. -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,2,0,0">
+                            <TextBlock Text="{Binding UserRank}" FontSize="12" FontWeight="Bold"
+                                       Foreground="{StaticResource AccentGold}"
+                                       ToolTip="Site rank"/>
+                            <TextBlock Text=" &#x2022; " FontSize="12" Foreground="{StaticResource BorderColor}"/>
+                            <TextBlock Text="{Binding UserPoints}" FontSize="12" FontWeight="Bold"
+                                       Foreground="{StaticResource AccentGreen}"
+                                       ToolTip="Total points"/>
+                            <TextBlock Text="{Binding UserTruePoints}" FontSize="11"
+                                       Foreground="{StaticResource TextMuted}"
+                                       Margin="4,0,0,0" VerticalAlignment="Center"
+                                       ToolTip="True (weighted) points"/>
+                        </StackPanel>
                     </StackPanel>
                     <Border CornerRadius="25" Width="50" Height="50" BorderThickness="2" BorderBrush="{StaticResource AccentBlue}"
+                            VerticalAlignment="Center"
                             behaviors:ImageAsync.Source="{Binding UserProfilePicture}"/>
                 </StackPanel>
             </Grid>
@@ -432,53 +500,41 @@ Height="790" Width="900"
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <!-- Bottom row (Overlay Windows + Current Focus). Floor keeps the overlay
-                             buttons from clipping on smaller windows without inflating dead space. -->
-                        <RowDefinition Height="*" MinHeight="250"/>
+                        <!-- Fixed, not Auto: the Current Game card's natural height changes with its
+                             content (set dropdown only shows for multiset games, guide links only
+                             when a game is loaded, long titles wrap). Auto let those shove the row
+                             below up and down on every game change. 240 fits the tallest case. -->
+                        <RowDefinition Height="240"/>
+                        <!-- Bottom row (Overlay Windows + Current Focus) takes the exact remainder.
+                             The window is fixed size, so this resolves to a constant. -->
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- User Info Card -->
-                    <Border Grid.Column="0" Grid.Row="0" Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE77B;" FontFamily="Segoe MDL2 Assets"/><Run Text=" User Info"/></TextBlock>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" CornerRadius="5" Width="80" Height="80" Margin="0,0,15,0"
-                                        behaviors:ImageAsync.Source="{Binding UserProfilePicture}"/>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="{Binding UserDisplayName}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
-                                    <TextBlock Text="{Binding UserMotto}" FontSize="14" Foreground="{StaticResource TextMuted}" FontStyle="Italic"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Rank: " Foreground="{StaticResource TextSecondary}"/>
-                                        <TextBlock Text="{Binding UserRank}" Foreground="{StaticResource AccentGold}" FontWeight="Bold"/>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Points: " Foreground="{StaticResource TextSecondary}"/>
-                                        <TextBlock Text="{Binding UserPoints}" Foreground="{StaticResource AccentGreen}" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding UserTruePoints}" Foreground="{StaticResource TextMuted}" Margin="5,0,0,0"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Game Info Card -->
-                    <Border Grid.Column="1" Grid.Row="0" Style="{StaticResource Card}">
+                    <!-- Game Info Card. Spans the full top row: the User Info card that used to sit in
+                         column 0 now lives in the header. A third column keeps the reclaimed width in
+                         use by pulling the progress summary out to the right edge. -->
+                    <Border Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Current Game"/></TextBlock>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
+                                    <!-- Fixed, not Auto: "0 / 634 achievements" and "MASTERED!" are
+                                         different widths, and an Auto column would resize the details
+                                         column next to it whenever the game changed. -->
+                                    <ColumnDefinition Width="190"/>
                                 </Grid.ColumnDefinitions>
                                 <Border Grid.Column="0" CornerRadius="5" Width="80" Height="80" Margin="0,0,15,0"
                                         behaviors:ImageAsync.Source="{Binding CurrentGameBadgeUri}"/>
                                 <StackPanel Grid.Column="1">
-                                    <TextBlock Text="{Binding GameTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap"/>
+                                    <!-- Single line + ellipsis rather than wrapping: a wrapped title
+                                         would add a second line and push the card past the fixed row
+                                         height. Same treatment as the set name in the dropdown below. -->
+                                    <TextBlock Text="{Binding GameTitle}" FontSize="18" FontWeight="Bold"
+                                               Foreground="{StaticResource TextPrimary}"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding GameTitle}"/>
                                     <TextBlock Text="{Binding GameConsole}" Foreground="{StaticResource AccentBlue}"/>
                                     
                                     <!-- Achievement Set Selector + set-type badge -->
@@ -539,7 +595,12 @@ Height="790" Width="900"
                                         </ComboBox>
                                     </StackPanel>
                                     
-                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                </StackPanel>
+
+                                <!-- Progress summary, pinned to the right edge of the now full-width card. -->
+                                <StackPanel Grid.Column="2" VerticalAlignment="Top"
+                                            HorizontalAlignment="Right" Margin="15,0,0,0">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                         <TextBlock Text="Progress: " Foreground="{StaticResource TextSecondary}"/>
                                         <TextBlock Text="{Binding GameCompletionText}" FontWeight="Bold">
                                             <TextBlock.Style>
@@ -554,24 +615,18 @@ Height="790" Width="900"
                                             </TextBlock.Style>
                                         </TextBlock>
                                     </StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Foreground="{StaticResource TextSecondary}">
-                                            <Run Text="{Binding GameAchievementsEarned, Mode=OneWay}"/>
-                                            <Run Text="/"/>
-                                            <Run Text="{Binding GameAchievementsTotal, Mode=OneWay}"/>
-                                            <Run Text=" achievements"/>
-                                        </TextBlock>
-                                    </StackPanel>
+                                    <TextBlock HorizontalAlignment="Right" Foreground="{StaticResource TextSecondary}">
+                                        <Run Text="{Binding GameAchievementsEarned, Mode=OneWay}"/>
+                                        <Run Text="/"/>
+                                        <Run Text="{Binding GameAchievementsTotal, Mode=OneWay}"/>
+                                        <Run Text=" achievements"/>
+                                    </TextBlock>
                                 </StackPanel>
                             </Grid>
                             
                             <!-- Progress Bar -->
-                            <Grid Margin="0,10,0,0">
-                                <Border Background="#3C3C3C" Height="8" CornerRadius="4"/>
-                                <Border Background="{StaticResource AccentGreen}" Height="8" CornerRadius="4"
-                                        HorizontalAlignment="Left"
-                                        Width="{Binding GameCompletionPercent, FallbackValue=0}"/>
-                            </Grid>
+                            <ProgressBar Style="{StaticResource CompletionBar}" Margin="0,10,0,0"
+                                         Value="{Binding GameCompletionPercent, Mode=OneWay, FallbackValue=0}"/>
 
                             <!-- Guide Links -->
                             <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
@@ -1050,6 +1105,209 @@ Height="790" Width="900"
                                                 </StackPanel>
                                             </Button>
                                         </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Alert Container Shape -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Alert Container" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock TextWrapping="Wrap" Margin="0,0,0,12"
+                                           Foreground="{StaticResource TextMuted}" FontSize="12"
+                                           Text="Resize and reshape the alert panel. Height 0 sizes it to its content (the default banner). Moving the badge to the top or bottom turns the banner into a card; hiding it gives a text-only strip."/>
+                                <WrapPanel>
+                                    <StackPanel Margin="0,0,12,8">
+                                        <TextBlock Text="Width" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBox x:Name="AlertWidthTextBox" Width="70" LostFocus="AlertLayoutSetting_Changed"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,12,8">
+                                        <TextBlock Text="Height (0=auto)" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBox x:Name="AlertHeightTextBox" Width="90" LostFocus="AlertLayoutSetting_Changed"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,12,8">
+                                        <TextBlock Text="Padding" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBox x:Name="AlertPaddingTextBox" Width="70" LostFocus="AlertLayoutSetting_Changed"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,12,8">
+                                        <TextBlock Text="Corner radius" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBox x:Name="AlertCornerRadiusTextBox" Width="80" LostFocus="AlertLayoutSetting_Changed"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,12,8">
+                                        <TextBlock Text="Badge position" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                        <ComboBox x:Name="AlertBadgePlacementComboBox" Width="100"
+                                                  SelectionChanged="AlertLayoutSetting_Changed"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,12,8">
+                                        <TextBlock Text="Badge size" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBox x:Name="AlertBadgeSizeTextBox" Width="70" LostFocus="AlertLayoutSetting_Changed"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,12,8">
+                                        <TextBlock Text="Badge radius" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBox x:Name="AlertBadgeRadiusTextBox" Width="80" LostFocus="AlertLayoutSetting_Changed"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,12,8">
+                                        <TextBlock Text="Badge/text gap" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                        <TextBox x:Name="AlertContentSpacingTextBox" Width="90" LostFocus="AlertLayoutSetting_Changed"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <Button x:Name="AlertEditModeButton" Content="Edit Layout"
+                                            Style="{StaticResource PrimaryButton}"
+                                            Click="ToggleAlertEditMode_Click"/>
+                                    <Button Content="Reset to Defaults" Style="{StaticResource ModernButton}"
+                                            Click="ResetAlertLayout_Click"/>
+                                </StackPanel>
+                                <TextBlock TextWrapping="Wrap" Margin="0,8,0,0"
+                                           FontSize="11" Foreground="{StaticResource TextMuted}"
+                                           Text="Edit Layout pins the alert on screen with your video looping behind it: drag the panel to move it, drag the blue box to move the video, scroll over it to scale. Changes save as you go."/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Custom Video Alerts -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel x:Name="CustomAlertsPanel">
+                                <TextBlock Text="Custom Video Alerts" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock TextWrapping="Wrap" Margin="0,0,0,12"
+                                           Foreground="{StaticResource TextMuted}" FontSize="12"
+                                           Text="Play your own alpha-transparent .webm behind the alert panel. In/Out are positions on the VIDEO's timeline, not durations — the panel appears at In and leaves at Out, so it can land on a specific frame."/>
+
+                                <!-- Achievement -->
+                                <Border Background="#1A4EC9B0" BorderBrush="{StaticResource AccentGreen}"
+                                        BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <CheckBox x:Name="CustomAchievementEnabledCheckBox"
+                                                  Content="Use a custom video for achievement alerts"
+                                                  FontWeight="SemiBold" Margin="0,0,0,8"
+                                                  Checked="CustomAlertSetting_Changed" Unchecked="CustomAlertSetting_Changed"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <TextBox x:Name="CustomAchievementPathTextBox" Width="330"
+                                                     VerticalAlignment="Center" IsReadOnly="True"
+                                                     ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                                            <Button Content="Browse..." Style="{StaticResource ModernButton}"
+                                                    Click="BrowseCustomAchievementVideo_Click"/>
+                                            <Button Content="Clear" Style="{StaticResource ModernButton}"
+                                                    Click="ClearCustomAchievementVideo_Click"/>
+                                        </StackPanel>
+                                        <WrapPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="X" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomAchievementXTextBox" Width="70"
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="Y" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomAchievementYTextBox" Width="70"
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="Scale" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomAchievementScaleTextBox" Width="70"
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="In (ms)" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomAchievementInTextBox" Width="70"
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="Out (ms)" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomAchievementOutTextBox" Width="70"
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="In-Animation" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <ComboBox x:Name="CustomAchievementInDirectionComboBox" Width="100"
+                                                          SelectionChanged="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="In speed (ms)" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomAchievementInSpeedTextBox" Width="85"
+                                                         ToolTip="How long the panel takes to animate in. 0 snaps instantly (what STATIC uses)."
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="Out-Animation" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <ComboBox x:Name="CustomAchievementOutDirectionComboBox" Width="100"
+                                                          SelectionChanged="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="Out speed (ms)" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomAchievementOutSpeedTextBox" Width="85"
+                                                         ToolTip="How long the panel takes to animate out."
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Mastery -->
+                                <Border Background="#1AFFD700" BorderBrush="{StaticResource AccentGold}"
+                                        BorderThickness="1" CornerRadius="4" Padding="10">
+                                    <StackPanel>
+                                        <CheckBox x:Name="CustomMasteryEnabledCheckBox"
+                                                  Content="Use a custom video for mastery alerts"
+                                                  FontWeight="SemiBold" Margin="0,0,0,8"
+                                                  Checked="CustomAlertSetting_Changed" Unchecked="CustomAlertSetting_Changed"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <TextBox x:Name="CustomMasteryPathTextBox" Width="330"
+                                                     VerticalAlignment="Center" IsReadOnly="True"
+                                                     ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                                            <Button Content="Browse..." Style="{StaticResource ModernButton}"
+                                                    Click="BrowseCustomMasteryVideo_Click"/>
+                                            <Button Content="Clear" Style="{StaticResource ModernButton}"
+                                                    Click="ClearCustomMasteryVideo_Click"/>
+                                        </StackPanel>
+                                        <WrapPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="X" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomMasteryXTextBox" Width="70"
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="Y" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomMasteryYTextBox" Width="70"
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="Scale" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomMasteryScaleTextBox" Width="70"
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="In (ms)" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomMasteryInTextBox" Width="70"
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="Out (ms)" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomMasteryOutTextBox" Width="70"
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="In-Animation" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <ComboBox x:Name="CustomMasteryInDirectionComboBox" Width="100"
+                                                          SelectionChanged="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="In speed (ms)" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomMasteryInSpeedTextBox" Width="85"
+                                                         ToolTip="How long the panel takes to animate in. 0 snaps instantly (what STATIC uses)."
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="Out-Animation" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <ComboBox x:Name="CustomMasteryOutDirectionComboBox" Width="100"
+                                                          SelectionChanged="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,12,6">
+                                                <TextBlock Text="Out speed (ms)" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                                                <TextBox x:Name="CustomMasteryOutSpeedTextBox" Width="85"
+                                                         ToolTip="How long the panel takes to animate out."
+                                                         LostFocus="CustomAlertSetting_Changed"/>
+                                            </StackPanel>
+                                        </WrapPanel>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

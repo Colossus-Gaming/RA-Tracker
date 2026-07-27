@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -125,6 +126,10 @@ public partial class MainWindow : Window
     /// </summary>
     private async Task HandleAutoStartAsync()
     {
+        // Fire-and-forget update check. Runs alongside startup rather than gating it, and anything
+        // it finds is staged for the next close rather than applied now.
+        _viewModel.StartUpdateCheck();
+
         if (_viewModel.AutoStart && _viewModel.CanStart)
         {
             System.Diagnostics.Debug.WriteLine("[MainWindow] Auto-start enabled, starting polling...");
@@ -362,6 +367,277 @@ public partial class MainWindow : Window
         else if (sender == UserInfoValueFontSizeSlider)
             vm.ValueFontSize = e.NewValue;
     }
+
+    #region Alert container shape settings
+
+    private bool _isInitializingAlertLayoutSettings;
+
+    /// <summary>
+    /// Populates the container-shape controls from persisted settings.
+    /// </summary>
+    private void InitializeAlertLayoutSettings()
+    {
+        _isInitializingAlertLayoutSettings = true;
+        try
+        {
+            if (AlertBadgePlacementComboBox.Items.Count == 0)
+            {
+                foreach (var name in Enum.GetNames<BadgePlacement>())
+                {
+                    AlertBadgePlacementComboBox.Items.Add(name);
+                }
+            }
+
+            var s = SettingsService.Instance.Settings;
+            var inv = CultureInfo.InvariantCulture;
+
+            AlertWidthTextBox.Text = s.AlertNotificationWidth.ToString(inv);
+            AlertHeightTextBox.Text = s.AlertNotificationHeight.ToString(inv);
+            AlertPaddingTextBox.Text = s.AlertContainerPadding.ToString(inv);
+            AlertCornerRadiusTextBox.Text = s.AlertContainerCornerRadius.ToString(inv);
+            AlertBadgeSizeTextBox.Text = s.AlertBadgeSize.ToString(inv);
+            AlertBadgeRadiusTextBox.Text = s.AlertBadgeCornerRadius.ToString(inv);
+            AlertContentSpacingTextBox.Text = s.AlertContentSpacing.ToString(inv);
+            AlertBadgePlacementComboBox.SelectedItem =
+                Enum.TryParse<BadgePlacement>(s.AlertBadgePlacement, ignoreCase: true, out var placement)
+                    ? placement.ToString()
+                    : nameof(BadgePlacement.Left);
+        }
+        finally
+        {
+            _isInitializingAlertLayoutSettings = false;
+        }
+    }
+
+    private void AlertLayoutSetting_Changed(object sender, RoutedEventArgs e) => ApplyAlertLayoutSettings();
+
+    private void AlertLayoutSetting_Changed(object sender, SelectionChangedEventArgs e) => ApplyAlertLayoutSettings();
+
+    /// <summary>
+    /// Reads the container-shape controls into settings and pushes them onto a live overlay so the
+    /// next test alert shows the new shape without a restart.
+    /// </summary>
+    private void ApplyAlertLayoutSettings()
+    {
+        if (_isInitializingAlertLayoutSettings) return;
+
+        var s = SettingsService.Instance.Settings;
+        var inv = CultureInfo.InvariantCulture;
+
+        double Dbl(TextBox box, double fallback)
+            => double.TryParse(box.Text, NumberStyles.Float, inv, out var v) && v >= 0 ? v : fallback;
+
+        s.AlertNotificationWidth = Dbl(AlertWidthTextBox, s.AlertNotificationWidth);
+        s.AlertNotificationHeight = Dbl(AlertHeightTextBox, s.AlertNotificationHeight);
+        s.AlertContainerPadding = Dbl(AlertPaddingTextBox, s.AlertContainerPadding);
+        s.AlertContainerCornerRadius = Dbl(AlertCornerRadiusTextBox, s.AlertContainerCornerRadius);
+        s.AlertBadgeSize = Dbl(AlertBadgeSizeTextBox, s.AlertBadgeSize);
+        s.AlertBadgeCornerRadius = Dbl(AlertBadgeRadiusTextBox, s.AlertBadgeCornerRadius);
+        s.AlertContentSpacing = Dbl(AlertContentSpacingTextBox, s.AlertContentSpacing);
+        s.AlertBadgePlacement = AlertBadgePlacementComboBox.SelectedItem as string ?? s.AlertBadgePlacement;
+
+        SettingsService.Instance.ScheduleSave();
+        _alertsOverlay?.ViewModel.LoadAlertLayoutSettings();
+    }
+
+    /// <summary>
+    /// Toggles the Alerts overlay's layout-edit mode, opening the overlay first if it isn't up.
+    /// </summary>
+    private async void ToggleAlertEditMode_Click(object sender, RoutedEventArgs e)
+    {
+        EnsureAlertsOverlayExists();
+
+        if (!_alertsOverlay!.IsVisible)
+            _alertsOverlay.Show();
+
+        if (_alertsOverlay.IsEditMode)
+        {
+            await _alertsOverlay.ExitEditModeAsync();
+            AlertEditModeButton.Content = "Edit Layout";
+            // Editing writes straight to settings, so pull the new values back into the controls.
+            InitializeAlertLayoutSettings();
+            InitializeCustomAlertSettings();
+        }
+        else
+        {
+            _alertsOverlay.Activate();
+            await _alertsOverlay.EnterEditModeAsync();
+            AlertEditModeButton.Content = "Done Editing";
+        }
+    }
+
+    private void ResetAlertLayout_Click(object sender, RoutedEventArgs e)
+    {
+        EnsureAlertsOverlayExists();
+        _alertsOverlay!.ViewModel.ResetAlertLayoutToDefaults();
+        InitializeAlertLayoutSettings();
+    }
+
+    #endregion
+
+    #region Custom Video Alerts settings
+
+    private bool _isInitializingCustomAlertSettings;
+
+    /// <summary>
+    /// Populates the custom-alert controls from persisted settings. Safe to call repeatedly.
+    /// </summary>
+    private void InitializeCustomAlertSettings()
+    {
+        _isInitializingCustomAlertSettings = true;
+        try
+        {
+            var directions = Enum.GetNames<AnimationDirection>();
+            foreach (var combo in new[]
+                     {
+                         CustomAchievementInDirectionComboBox, CustomAchievementOutDirectionComboBox,
+                         CustomMasteryInDirectionComboBox, CustomMasteryOutDirectionComboBox
+                     })
+            {
+                if (combo.Items.Count == 0)
+                {
+                    foreach (var name in directions) combo.Items.Add(name);
+                }
+            }
+
+            var s = SettingsService.Instance.Settings;
+            var inv = CultureInfo.InvariantCulture;
+
+            CustomAchievementEnabledCheckBox.IsChecked = s.CustomAchievementEnabled;
+            CustomAchievementPathTextBox.Text = s.CustomAchievementVideoPath;
+            CustomAchievementXTextBox.Text = s.CustomAchievementX.ToString(inv);
+            CustomAchievementYTextBox.Text = s.CustomAchievementY.ToString(inv);
+            CustomAchievementScaleTextBox.Text = s.CustomAchievementScale.ToString("0.00", inv);
+            CustomAchievementInTextBox.Text = s.CustomAchievementInTime.ToString(inv);
+            CustomAchievementOutTextBox.Text = s.CustomAchievementOutTime.ToString(inv);
+            CustomAchievementInSpeedTextBox.Text = s.CustomAchievementInSpeed.ToString(inv);
+            CustomAchievementOutSpeedTextBox.Text = s.CustomAchievementOutSpeed.ToString(inv);
+            CustomAchievementInDirectionComboBox.SelectedItem = NormalizeDirection(s.CustomAchievementInDirection);
+            CustomAchievementOutDirectionComboBox.SelectedItem = NormalizeDirection(s.CustomAchievementOutDirection);
+
+            CustomMasteryEnabledCheckBox.IsChecked = s.CustomMasteryEnabled;
+            CustomMasteryPathTextBox.Text = s.CustomMasteryVideoPath;
+            CustomMasteryXTextBox.Text = s.CustomMasteryX.ToString(inv);
+            CustomMasteryYTextBox.Text = s.CustomMasteryY.ToString(inv);
+            CustomMasteryScaleTextBox.Text = s.CustomMasteryScale.ToString("0.00", inv);
+            CustomMasteryInTextBox.Text = s.CustomMasteryInTime.ToString(inv);
+            CustomMasteryOutTextBox.Text = s.CustomMasteryOutTime.ToString(inv);
+            CustomMasteryInSpeedTextBox.Text = s.CustomMasteryInSpeed.ToString(inv);
+            CustomMasteryOutSpeedTextBox.Text = s.CustomMasteryOutSpeed.ToString(inv);
+            CustomMasteryInDirectionComboBox.SelectedItem = NormalizeDirection(s.CustomMasteryInDirection);
+            CustomMasteryOutDirectionComboBox.SelectedItem = NormalizeDirection(s.CustomMasteryOutDirection);
+        }
+        finally
+        {
+            _isInitializingCustomAlertSettings = false;
+        }
+    }
+
+    /// <summary>Maps a stored direction (including legacy all-caps values) onto an enum name.</summary>
+    private static string NormalizeDirection(string? stored)
+        => Enum.TryParse<AnimationDirection>(stored, ignoreCase: true, out var parsed)
+            ? parsed.ToString()
+            : nameof(AnimationDirection.Static);
+
+    private void CustomAlertSetting_Changed(object sender, RoutedEventArgs e) => ApplyCustomAlertSettings();
+
+    private void CustomAlertSetting_Changed(object sender, SelectionChangedEventArgs e) => ApplyCustomAlertSettings();
+
+    /// <summary>
+    /// Reads the custom-alert controls into settings and pushes them onto a live overlay so the
+    /// next test alert uses them immediately.
+    /// </summary>
+    private void ApplyCustomAlertSettings()
+    {
+        if (_isInitializingCustomAlertSettings) return;
+
+        var s = SettingsService.Instance.Settings;
+        var inv = CultureInfo.InvariantCulture;
+
+        double Dbl(TextBox box, double fallback)
+            => double.TryParse(box.Text, NumberStyles.Float, inv, out var v) ? v : fallback;
+        int Int(TextBox box, int fallback)
+            => int.TryParse(box.Text, NumberStyles.Integer, inv, out var v) ? v : fallback;
+        string Dir(ComboBox box, string fallback)
+            => box.SelectedItem as string ?? fallback;
+
+        s.CustomAchievementEnabled = CustomAchievementEnabledCheckBox.IsChecked ?? false;
+        s.CustomAchievementVideoPath = CustomAchievementPathTextBox.Text;
+        s.CustomAchievementX = Dbl(CustomAchievementXTextBox, s.CustomAchievementX);
+        s.CustomAchievementY = Dbl(CustomAchievementYTextBox, s.CustomAchievementY);
+        s.CustomAchievementScale = Dbl(CustomAchievementScaleTextBox, s.CustomAchievementScale);
+        s.CustomAchievementInTime = Int(CustomAchievementInTextBox, s.CustomAchievementInTime);
+        s.CustomAchievementOutTime = Int(CustomAchievementOutTextBox, s.CustomAchievementOutTime);
+        s.CustomAchievementInSpeed = Int(CustomAchievementInSpeedTextBox, s.CustomAchievementInSpeed);
+        s.CustomAchievementOutSpeed = Int(CustomAchievementOutSpeedTextBox, s.CustomAchievementOutSpeed);
+        s.CustomAchievementInDirection = Dir(CustomAchievementInDirectionComboBox, s.CustomAchievementInDirection);
+        s.CustomAchievementOutDirection = Dir(CustomAchievementOutDirectionComboBox, s.CustomAchievementOutDirection);
+
+        s.CustomMasteryEnabled = CustomMasteryEnabledCheckBox.IsChecked ?? false;
+        s.CustomMasteryVideoPath = CustomMasteryPathTextBox.Text;
+        s.CustomMasteryX = Dbl(CustomMasteryXTextBox, s.CustomMasteryX);
+        s.CustomMasteryY = Dbl(CustomMasteryYTextBox, s.CustomMasteryY);
+        s.CustomMasteryScale = Dbl(CustomMasteryScaleTextBox, s.CustomMasteryScale);
+        s.CustomMasteryInTime = Int(CustomMasteryInTextBox, s.CustomMasteryInTime);
+        s.CustomMasteryOutTime = Int(CustomMasteryOutTextBox, s.CustomMasteryOutTime);
+        s.CustomMasteryInSpeed = Int(CustomMasteryInSpeedTextBox, s.CustomMasteryInSpeed);
+        s.CustomMasteryOutSpeed = Int(CustomMasteryOutSpeedTextBox, s.CustomMasteryOutSpeed);
+        s.CustomMasteryInDirection = Dir(CustomMasteryInDirectionComboBox, s.CustomMasteryInDirection);
+        s.CustomMasteryOutDirection = Dir(CustomMasteryOutDirectionComboBox, s.CustomMasteryOutDirection);
+
+        SettingsService.Instance.ScheduleSave();
+
+        // Re-read into a live overlay so "Test Achievement" reflects the edit without a restart.
+        _alertsOverlay?.ViewModel.LoadCustomAlertSettings();
+    }
+
+    private void BrowseCustomAchievementVideo_Click(object sender, RoutedEventArgs e)
+    {
+        if (PickAlertVideo() is { } path)
+        {
+            CustomAchievementPathTextBox.Text = path;
+            ApplyCustomAlertSettings();
+        }
+    }
+
+    private void BrowseCustomMasteryVideo_Click(object sender, RoutedEventArgs e)
+    {
+        if (PickAlertVideo() is { } path)
+        {
+            CustomMasteryPathTextBox.Text = path;
+            ApplyCustomAlertSettings();
+        }
+    }
+
+    private void ClearCustomAchievementVideo_Click(object sender, RoutedEventArgs e)
+    {
+        CustomAchievementPathTextBox.Text = string.Empty;
+        CustomAchievementEnabledCheckBox.IsChecked = false;
+        ApplyCustomAlertSettings();
+    }
+
+    private void ClearCustomMasteryVideo_Click(object sender, RoutedEventArgs e)
+    {
+        CustomMasteryPathTextBox.Text = string.Empty;
+        CustomMasteryEnabledCheckBox.IsChecked = false;
+        ApplyCustomAlertSettings();
+    }
+
+    private static string? PickAlertVideo()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Select an alert video",
+            // .webm with an alpha channel is the format these alerts are built around; WebView2
+            // will also happily play mp4/webm without alpha.
+            Filter = "Alert video (*.webm;*.mp4)|*.webm;*.mp4|All files (*.*)|*.*",
+            CheckFileExists = true
+        };
+
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    #endregion
 
     private void UserInfoVisibilityCheckBox_Changed(object sender, RoutedEventArgs e)
     {
@@ -736,9 +1012,16 @@ public partial class MainWindow : Window
 
     #region Overlay Management
 
+    // NOTE (applies to every Ensure*OverlayExists below): the guard is `== null` and nothing more.
+    // It previously also recreated when !IsLoaded, which leaked windows: opening a settings page
+    // constructs its overlay without showing it, so IsLoaded stays false, and the next call built a
+    // second instance and orphaned the first. An orphan is never shown and never closed, but stays
+    // in Application.Windows — which blocked OnLastWindowClose shutdown and left the process alive
+    // after the user closed the app. A closed window already nulls its field via the Closed handler,
+    // so `== null` is both sufficient and correct.
     private void EnsureFocusOverlayExists()
     {
-        if (_focusOverlay == null || !_focusOverlay.IsLoaded)
+        if (_focusOverlay == null)
         {
             _focusOverlay = new FocusOverlay();
             _focusOverlay.Closed += (s, e) => _focusOverlay = null;
@@ -773,7 +1056,7 @@ public partial class MainWindow : Window
 
     private void EnsureAlertsOverlayExists()
     {
-        if (_alertsOverlay == null || !_alertsOverlay.IsLoaded)
+        if (_alertsOverlay == null)
         {
             _alertsOverlay = new AlertsOverlay();
             _alertsOverlay.Closed += (s, e) => _alertsOverlay = null;
@@ -796,16 +1079,20 @@ public partial class MainWindow : Window
 
     private void OnAchievementUnlocked(object? sender, RATracker.Models.Achievement achievement)
     {
-        // An unlock fires the Alerts overlay ONLY. It must not touch the Focus overlay — the focus is
-        // controlled solely by the user (Prev/Next browse + Set Focus). Advancing the focus when the
-        // *focused* achievement is unlocked is handled separately in the ViewModel (refocus behavior),
-        // which raises FocusChanged.
+        // An unlock fires the Alerts overlay and animates the matching badge in the Cheevos Set list.
+        // It must NOT touch the Focus overlay — the focus is controlled solely by the user (Prev/Next +
+        // Set Focus). Advancing the focus when the *focused* achievement is unlocked is handled
+        // separately in the ViewModel (refocus behavior), which raises FocusChanged.
         EnsureAlertsOverlayExists();
 
         if (!_alertsOverlay!.IsVisible)
             _alertsOverlay.Show();
 
         _alertsOverlay.QueueAchievementNotification(achievement);
+
+        // Flip + gold-glow the badge in the Achievement List overlay, if it's open.
+        if (_achievementListOverlay?.IsVisible == true)
+            _achievementListOverlay.UnlockAchievement(achievement.Id);
     }
 
     private void OnGameMastered(object? sender, RATracker.Models.GameInfo gameInfo)
@@ -832,7 +1119,7 @@ public partial class MainWindow : Window
 
     private void EnsureUserInfoOverlayExists()
     {
-        if (_userInfoOverlay == null || !_userInfoOverlay.IsLoaded)
+        if (_userInfoOverlay == null)
         {
             _userInfoOverlay = new UserInfoOverlay();
             _userInfoOverlay.Closed += (s, e) => _userInfoOverlay = null;
@@ -862,7 +1149,7 @@ public partial class MainWindow : Window
 
     private void EnsureGameInfoOverlayExists()
     {
-        if (_gameInfoOverlay == null || !_gameInfoOverlay.IsLoaded)
+        if (_gameInfoOverlay == null)
         {
             _gameInfoOverlay = new GameInfoOverlay();
             _gameInfoOverlay.Closed += (s, e) => _gameInfoOverlay = null;
@@ -892,7 +1179,7 @@ public partial class MainWindow : Window
 
     private void EnsureGameProgressOverlayExists()
     {
-        if (_gameProgressOverlay == null || !_gameProgressOverlay.IsLoaded)
+        if (_gameProgressOverlay == null)
         {
             _gameProgressOverlay = new GameProgressOverlay();
             _gameProgressOverlay.Closed += (s, e) => _gameProgressOverlay = null;
@@ -922,7 +1209,7 @@ public partial class MainWindow : Window
 
     private void EnsureRecentUnlocksOverlayExists()
     {
-        if (_recentUnlocksOverlay == null || !_recentUnlocksOverlay.IsLoaded)
+        if (_recentUnlocksOverlay == null)
         {
             _recentUnlocksOverlay = new RecentUnlocksOverlay();
             _recentUnlocksOverlay.Closed += (s, e) => _recentUnlocksOverlay = null;
@@ -1017,7 +1304,7 @@ public partial class MainWindow : Window
 
     private void EnsureRelatedMediaOverlayExists()
     {
-        if (_relatedMediaOverlay == null || !_relatedMediaOverlay.IsLoaded)
+        if (_relatedMediaOverlay == null)
         {
             _relatedMediaOverlay = new RelatedMediaOverlay();
             _relatedMediaOverlay.Closed += (s, e) => _relatedMediaOverlay = null;
@@ -1047,7 +1334,7 @@ public partial class MainWindow : Window
 
     private void EnsureAchievementListOverlayExists()
     {
-        if (_achievementListOverlay == null || !_achievementListOverlay.IsLoaded)
+        if (_achievementListOverlay == null)
         {
             _achievementListOverlay = new AchievementListOverlay();
             _achievementListOverlay.Closed += (s, e) => _achievementListOverlay = null;
@@ -1308,7 +1595,12 @@ public partial class MainWindow : Window
 
         // Navigation button click handlers
         private void NavigateToFocusSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(FocusSettingsPage);
-        private void NavigateToAlertsSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(AlertsSettingsPage);
+        private void NavigateToAlertsSettings_Click(object sender, RoutedEventArgs e)
+        {
+            InitializeAlertLayoutSettings();
+            InitializeCustomAlertSettings();
+            NavigateToPage(AlertsSettingsPage);
+        }
         private void NavigateToUserInfoSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(UserInfoSettingsPage);
         private void NavigateToGameInfoSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(GameInfoSettingsPage);
         private void NavigateToGameProgressSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(GameProgressSettingsPage);

@@ -790,6 +790,8 @@ public class V2ProgressService : IProgressService, IDisposable
     {
         var game = new RecentlyPlayedGame
         {
+            // player-games exposes no unlock count, so these lookups always miss and this stays 0.
+            // Kept (rather than dropped) so the shape matches the v1 mapper; see the property docs.
             EarnedAchievements = resource.GetAttribute<int?>("achievementsUnlocked") ??
                                   resource.GetAttribute<int?>("achievementsUnlockedHardcore") ?? 0,
             TotalAchievements = resource.GetAttribute<int?>("achievementsTotal") ?? 0

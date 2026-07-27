@@ -395,7 +395,7 @@ public class RecentUnlocksViewModel : ViewModelBase
                 Title = "Welcome to the Club",
                 Description = "Complete the first level",
                 Points = 10,
-                BadgeUri = "https://media.retroachievements.org/Badge/00001.png",
+                BadgeUri = "https://media.retroachievements.org/Badge/00000.png",
                 DateEarned = DateTime.Now.AddMinutes(-5)
             },
             new Achievement

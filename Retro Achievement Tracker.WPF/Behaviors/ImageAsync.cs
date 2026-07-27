@@ -31,26 +31,13 @@ namespace RATracker.WPF.Behaviors;
 /// <para><b>Scope.</b> Intended for the dashboard badges that change in place with no animation to mask
 /// the bug. It is NOT for the overlay badges, which use an <c>&lt;Image&gt;</c> with a live rounded
 /// <c>Image.Clip</c> and show-animations that already force a render pass.</para>
+///
+/// <para><b>Storage.</b> Downloading, decoding and caching all live in
+/// <see cref="Converters.BadgeImageCache"/>, which the overlay converter shares. This behaviour only
+/// owns the Border-specific part: newest-load-wins and assigning the brush.</para>
 /// </summary>
 public static class ImageAsync
 {
-    // One shared client for the whole app. PooledConnectionLifetime lets a long-running streaming
-    // session pick up DNS changes; Timeout prevents a hung CDN connection from pinning a load forever.
-    private static readonly HttpClient _http = new(new SocketsHttpHandler
-    {
-        PooledConnectionLifetime = TimeSpan.FromMinutes(5)
-    })
-    {
-        Timeout = TimeSpan.FromSeconds(15)
-    };
-
-    // Bounded LRU cache of frozen (cross-thread-usable) ImageSources keyed by URL, so browsing back
-    // and forth doesn't re-download and the cache can't grow without bound over a long session.
-    private const int CacheCapacity = 256;
-    private static readonly object _cacheLock = new();
-    private static readonly Dictionary<string, LinkedListNode<KeyValuePair<string, ImageSource>>> _cache = new();
-    private static readonly LinkedList<KeyValuePair<string, ImageSource>> _lru = new();
-
     public static readonly DependencyProperty SourceProperty =
         DependencyProperty.RegisterAttached(
             "Source", typeof(string), typeof(ImageAsync),
@@ -84,7 +71,7 @@ public static class ImageAsync
 
         try
         {
-            var image = await LoadFrozenAsync(uri, cts.Token);
+            var image = await Converters.BadgeImageCache.GetOrLoadAsync(uri, cts.Token);
             // The DP callback ran on the UI thread, so this continuation resumes on the UI thread.
             if (!ReferenceEquals(border.GetValue(LoadTokenProperty), cts)) return; // superseded
             border.Background = image == null
@@ -104,59 +91,4 @@ public static class ImageAsync
         }
     }
 
-    private static async Task<ImageSource?> LoadFrozenAsync(string uri, CancellationToken ct)
-    {
-        if (TryGetCached(uri, out var cached)) return cached;
-
-        // Download + decode entirely off the UI thread.
-        byte[] bytes = await _http.GetByteArrayAsync(uri, ct).ConfigureAwait(false);
-        ct.ThrowIfCancellationRequested();
-
-        var bmp = new BitmapImage();
-        bmp.BeginInit();
-        bmp.CacheOption = BitmapCacheOption.OnLoad;
-        using (var ms = new MemoryStream(bytes))
-        {
-            bmp.StreamSource = ms;
-            bmp.EndInit(); // synchronous decode from the in-memory stream
-        }
-        bmp.Freeze(); // now immutable and usable from the UI thread
-
-        AddToCache(uri, bmp);
-        return bmp;
-    }
-
-    private static bool TryGetCached(string uri, out ImageSource? image)
-    {
-        lock (_cacheLock)
-        {
-            if (_cache.TryGetValue(uri, out var node))
-            {
-                _lru.Remove(node);
-                _lru.AddFirst(node);
-                image = node.Value.Value;
-                return true;
-            }
-        }
-        image = null;
-        return false;
-    }
-
-    private static void AddToCache(string uri, ImageSource image)
-    {
-        lock (_cacheLock)
-        {
-            if (_cache.ContainsKey(uri)) return;
-            var node = new LinkedListNode<KeyValuePair<string, ImageSource>>(
-                new KeyValuePair<string, ImageSource>(uri, image));
-            _lru.AddFirst(node);
-            _cache[uri] = node;
-            while (_cache.Count > CacheCapacity && _lru.Last != null)
-            {
-                var oldest = _lru.Last;
-                _lru.RemoveLast();
-                _cache.Remove(oldest.Value.Key);
-            }
-        }
-    }
 }

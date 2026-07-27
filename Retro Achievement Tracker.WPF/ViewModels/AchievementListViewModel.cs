@@ -12,6 +12,7 @@ public class AchievementListItem : ViewModelBase
 {
     private Achievement _achievement = null!;
     private bool _isUnlocked;
+    private bool _justUnlocked;
     private double _opacity = 1.0;
 
     public Achievement Achievement
@@ -23,7 +24,17 @@ public class AchievementListItem : ViewModelBase
     public bool IsUnlocked
     {
         get => _isUnlocked;
-        set => SetProperty(ref _isUnlocked, value);
+        set { if (SetProperty(ref _isUnlocked, value)) OnPropertyChanged(nameof(BadgeUri)); }
+    }
+
+    /// <summary>
+    /// Set once when this achievement unlocks live during the session; drives the badge flip +
+    /// gold-glow animation. Stays false for achievements already unlocked when the list loaded.
+    /// </summary>
+    public bool JustUnlocked
+    {
+        get => _justUnlocked;
+        set => SetProperty(ref _justUnlocked, value);
     }
 
     public double Opacity
@@ -295,18 +306,30 @@ public class AchievementListViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Updates an achievement's unlock status.
+    /// Re-evaluates the unlocked/locked/total counts. Call after an item's IsUnlocked changes live
+    /// (a live unlock updates the badge in place and does not re-sort, so the animation isn't disrupted).
     /// </summary>
-    public void UnlockAchievement(int achievementId)
+    public void RefreshProgress() => NotifyProgressChanged();
+
+    /// <summary>
+    /// Moves a just-unlocked item to its slot in the current sort order using an in-place Move, so the
+    /// item container is preserved and FluidMoveBehavior animates the badges sliding to their new grid
+    /// positions. No-op when unlocked-first ordering is off.
+    /// </summary>
+    public void MoveToSortedPosition(AchievementListItem item)
     {
-        var item = Achievements.FirstOrDefault(a => a.Id == achievementId);
-        if (item != null)
-        {
-            item.IsUnlocked = true;
-            OnPropertyChanged(nameof(item.BadgeUri));
-            SortAchievements();
-            NotifyProgressChanged();
-        }
+        if (!ShowUnlockedFirst) return;
+
+        int oldIndex = Achievements.IndexOf(item);
+        if (oldIndex < 0) return;
+
+        var sorted = Achievements
+            .OrderByDescending(a => a.IsUnlocked)
+            .ThenBy(a => a.Achievement.DisplayOrder)
+            .ToList();
+        int newIndex = sorted.IndexOf(item);
+        if (newIndex >= 0 && newIndex != oldIndex)
+            Achievements.Move(oldIndex, newIndex);
     }
 
     /// <summary>
