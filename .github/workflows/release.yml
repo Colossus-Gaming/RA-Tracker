@@ -19,7 +19,7 @@ jobs:
     steps:
       # fetch-depth: 0 is required — the release-from-main check below needs enough history to test
       # whether the tagged commit is reachable from main.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -42,7 +42,7 @@ jobs:
           Write-Host "Commit is on main - proceeding with the release."
 
       - name: Set up .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
@@ -152,7 +152,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Failed to upload assets to $tag" }
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: velopack-release-${{ steps.version.outputs.version }}
           path: releases/*
