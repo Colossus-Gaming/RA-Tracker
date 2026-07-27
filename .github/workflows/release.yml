@@ -1,0 +1,158 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g. 1.9.1). Only needed for manual runs.'
+        required: true
+
+permissions:
+  contents: write   # needed to create the release and upload assets
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      # fetch-depth: 0 is required — the release-from-main check below needs enough history to test
+      # whether the tagged commit is reachable from main.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Git tags are not branch-scoped: `on: push: tags` fires for a tag on ANY branch, so without
+      # this a tag cut from develop would ship a release. Releases come from main only.
+      - name: Verify the commit is on main
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Explicit refspec: actions/checkout only configures a refspec for the ref it checked out,
+          # so refs/remotes/origin/main is not guaranteed to exist without asking for it by name.
+          git fetch origin '+refs/heads/main:refs/remotes/origin/main' --quiet
+          if ($LASTEXITCODE -ne 0) { throw "Could not fetch main to validate the release commit" }
+
+          git merge-base --is-ancestor $env:GITHUB_SHA origin/main
+          if ($LASTEXITCODE -ne 0) {
+            throw "Refusing to release: commit $env:GITHUB_SHA is not reachable from main. " +
+                  "Merge it to main first, then tag the merge commit."
+          }
+          Write-Host "Commit is on main - proceeding with the release."
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # The git tag is the single source of truth for the version: v1.9.1 -> 1.9.1
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $version = if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            '${{ github.event.inputs.version }}'
+          } else {
+            '${{ github.ref_name }}' -replace '^v', ''
+          }
+          if ($version -notmatch '^\d+\.\d+\.\d+') {
+            throw "Version '$version' is not in the expected N.N.N form."
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Building version $version"
+
+      - name: Restore
+        run: dotnet restore "Retro Achievement Tracker.sln"
+
+      - name: Unit tests
+        run: >
+          dotnet test "Retro Achievement Tracker.Tests/Retro Achievement Tracker.Tests.csproj"
+          -c Release
+          --filter "TestCategory!=Integration"
+
+      # Self-contained so users don't need the .NET 8 Desktop Runtime installed. Costs download
+      # size on first install; Velopack deltas keep subsequent updates small.
+      - name: Publish
+        run: >
+          dotnet publish "Retro Achievement Tracker.WPF/Retro Achievement Tracker.WPF.csproj"
+          -c Release -r win-x64 --self-contained true
+          -p:Version=${{ steps.version.outputs.version }}
+          -o publish
+
+      - name: Verify published build has no developer tooling
+        shell: pwsh
+        run: |
+          $text = [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes("publish/RATracker.WPF.dll"))
+          foreach ($needle in 'probe-v2','probe-game','probe-alerts','find-game','log-to-file','TryRunDeveloperTool') {
+            if ($text.Contains($needle)) { throw "Developer tooling leaked into the release build: $needle" }
+          }
+          Write-Host "OK - Production binary is clean."
+
+      # The vpk CLI and the Velopack library must be the same version — a mismatch can produce
+      # packages the installed client can't read. Read the version straight from the csproj so the
+      # two can never drift.
+      - name: Install Velopack CLI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $csproj = [xml](Get-Content "Retro Achievement Tracker.WPF/Retro Achievement Tracker.WPF.csproj")
+          $velopack = $csproj.Project.ItemGroup.PackageReference |
+                      Where-Object { $_.Include -eq 'Velopack' } |
+                      Select-Object -First 1
+          if (-not $velopack) { throw "Velopack PackageReference not found in the csproj" }
+          Write-Host "Installing vpk $($velopack.Version) to match the Velopack package"
+          dotnet tool install -g vpk --version $velopack.Version
+          if ($LASTEXITCODE -ne 0) { throw "vpk install failed" }
+
+          # Global tools land here; make sure later steps can find vpk on PATH.
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      # Produces the installer, the delta/full packages and the RELEASES manifest the in-app
+      # updater reads. --framework bootstraps the WebView2 runtime, which the custom video alerts
+      # hard-depend on and which is not guaranteed to be present.
+      - name: Package
+        run: >
+          vpk pack
+          --packId ColossusGaming.RATracker
+          --packTitle "Retro Achievement Tracker"
+          --packAuthors "Colossus Gaming"
+          --packVersion ${{ steps.version.outputs.version }}
+          --packDir publish
+          --mainExe RATracker.WPF.exe
+          --framework webview2
+          --outputDir releases
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = 'v${{ steps.version.outputs.version }}'
+
+          # Create the release only if the tag doesn't already have one. Branch on the exit code
+          # rather than on captured output — gh writes to stderr and PowerShell treats a native
+          # command's stderr as an error record, which makes output-based checks unreliable.
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Creating release $tag"
+            gh release create $tag --title $tag --generate-notes
+            if ($LASTEXITCODE -ne 0) { throw "Failed to create release $tag" }
+          } else {
+            Write-Host "Release $tag already exists; uploading assets to it"
+          }
+
+          $assets = @(Get-ChildItem -Path releases -File | ForEach-Object { $_.FullName })
+          if ($assets.Count -eq 0) { throw "vpk produced no release artifacts" }
+          Write-Host "Uploading $($assets.Count) asset(s)"
+
+          # Splat so each path is a separate argument to gh.
+          gh release upload $tag @assets --clobber
+          if ($LASTEXITCODE -ne 0) { throw "Failed to upload assets to $tag" }
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: velopack-release-${{ steps.version.outputs.version }}
+          path: releases/*
