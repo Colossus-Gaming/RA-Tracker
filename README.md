@@ -4,8 +4,8 @@ RetroAchievements overlay tracker for streamers, built on WPF (.NET 8).
 
 ## Install
 
-1. Download **`ColossusGaming.RATracker-win-Setup.exe`** from the [latest release](https://github.com/Colossus-Gaming/RA-Tracker/releases/latest).
-2. Double-click it.
+1. Download **`RATracker-Setup-<version>.exe`** from the [latest release](https://github.com/Colossus-Gaming/RA-Tracker/releases/latest).
+2. Double-click it and follow the wizard — it will ask where you want the app installed.
 
 That's the whole install. There is nothing else to set up — the .NET runtime is bundled inside the
 installer, so you do not need the .NET SDK, Visual Studio, or any command line. Setup adds a Desktop
@@ -13,6 +13,21 @@ icon and a Start Menu entry.
 
 Windows may show a **"Windows protected your PC"** prompt, because the build is not code-signed yet.
 Choose **More info → Run anyway**.
+
+### Where it installs
+
+The wizard defaults to `%LOCALAPPDATA%\ColossusGaming.RATracker`, and you can browse to anywhere your
+Windows account can write to — another drive works fine.
+
+Locations that need administrator rights, such as `C:\Program Files`, are rejected on purpose. The
+app updates itself silently without elevation, so installing somewhere it cannot write would appear
+to work and then quietly break every future update.
+
+To script an unattended install, the wizard accepts the usual Inno Setup switches:
+
+```powershell
+.\RATracker-Setup-1.9.1.exe /VERYSILENT /DIR="D:\Apps\RATracker"
+```
 
 ### Updates
 
@@ -56,6 +71,7 @@ pin) compiles only in Debug builds, so a Release build never carries it.
 
 - `Retro Achievement Tracker.WPF/`: WPF app source
 - `Retro Achievement Tracker.Tests/`: NUnit test suite
+- `installer/`: Inno Setup wizard that wraps the Velopack installer
 - `.github/workflows/`: CI and release automation
 - `docs/`: guides, plans, and historical notes
 

@@ -123,6 +123,51 @@ jobs:
           --framework webview2
           --outputDir releases
 
+      # Velopack's Setup.exe installs to a fixed per-user path with no folder-picker UI. This wraps
+      # it in an Inno Setup wizard that adds the standard "choose install location" page and passes
+      # the result through with --installto, so the user gets a real choice while Velopack keeps
+      # ownership of shortcuts, uninstall registration and silent self-updating.
+      - name: Build the install wizard
+        shell: pwsh
+        env:
+          # Passed as an environment variable rather than interpolated into the script: a ${{ }}
+          # expression inside a double-quoted PowerShell string is not parseable before Actions
+          # substitutes it, which breaks linting and static checking of this step.
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $iscc = @(
+            "${env:ProgramFiles}\Inno Setup 6\ISCC.exe",
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "${env:ProgramFiles}\Inno Setup 7\ISCC.exe",
+            "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+          # Runner images normally ship Inno Setup; install it if this one doesn't.
+          if (-not $iscc) {
+            Write-Host "Inno Setup not found on the runner - installing via Chocolatey"
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw "Could not install Inno Setup" }
+            $iscc = @(
+              "${env:ProgramFiles}\Inno Setup 6\ISCC.exe",
+              "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+            ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          if (-not $iscc) { throw "ISCC.exe still not found after install" }
+          Write-Host "Using $iscc"
+
+          $velopackSetup = Get-ChildItem releases -Filter '*-Setup.exe' | Select-Object -First 1
+          if (-not $velopackSetup) { throw "Velopack Setup.exe not found in releases/" }
+
+          & $iscc "/DVelopackSetup=$($velopackSetup.FullName)" `
+                  "/DAppVersion=$env:APP_VERSION" `
+                  "/Owizard" `
+                  "installer/RATracker.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed" }
+
+          Get-ChildItem wizard | ForEach-Object { "built {0} ({1:N1} MB)" -f $_.Name, ($_.Length / 1MB) }
+
       - name: Publish GitHub release
         shell: pwsh
         env:
@@ -143,19 +188,24 @@ jobs:
             Write-Host "Release $tag already exists; uploading assets to it"
           }
 
-          # Skip the portable zip. Velopack always emits one and there is no flag to suppress it,
-          # but publishing it alongside the installer leaves a non-technical user choosing between
-          # two ~75 MB downloads. Setup.exe is the only thing anyone should click; the remaining
-          # files (RELEASES, releases.win.json, the .nupkg) are the feed the in-app updater reads,
-          # so they must stay. Nothing references the portable zip.
+          # What ships:
+          #   wizard/RATracker-Setup-<version>.exe  - the one file a user downloads and clicks
+          #   RELEASES, releases.win.json, *.nupkg  - the feed the in-app updater reads
+          #
+          # Excluded: Velopack's own bare Setup.exe (it is bundled inside the wizard, and publishing
+          # both would leave a user choosing between two installers, one without a folder picker),
+          # and the portable zip (Velopack always emits one, there is no flag to suppress it, and it
+          # is another ~75 MB download nothing references).
           $assets = @(
             Get-ChildItem -Path releases -File |
-              Where-Object { $_.Name -notlike '*-Portable.zip' } |
+              Where-Object { $_.Name -notlike '*-Portable.zip' -and $_.Name -notlike '*-Setup.exe' } |
               ForEach-Object { $_.FullName }
           )
-          if ($assets.Count -eq 0) { throw "vpk produced no release artifacts" }
-          if (-not ($assets | Where-Object { $_ -like '*Setup.exe' })) {
-            throw "No Setup.exe was produced - the installer is the whole point of the release"
+          $assets += @(Get-ChildItem -Path wizard -Filter '*.exe' -File | ForEach-Object { $_.FullName })
+
+          if ($assets.Count -eq 0) { throw "no release artifacts were produced" }
+          if (-not ($assets | Where-Object { $_ -like '*RATracker-Setup-*.exe' })) {
+            throw "The install wizard was not produced - it is the whole point of the release"
           }
           Write-Host "Uploading $($assets.Count) asset(s)"
 
