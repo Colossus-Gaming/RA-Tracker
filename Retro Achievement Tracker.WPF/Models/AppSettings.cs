@@ -242,12 +242,6 @@ public class AppSettings
 
     #region Position Mode
 
-    /// <summary>
-    /// Gets or sets whether Position Mode is enabled globally.
-    /// When enabled, overlay windows show positioning guides and can be dragged.
-    /// When disabled, overlays are fully transparent for OBS capture.
-    /// </summary>
-    public bool PositionModeEnabled { get; set; }
 
     #endregion
 
@@ -282,6 +276,135 @@ public class AppSettings
     /// Gets or sets the Alerts overlay Y position.
     /// </summary>
     public double? AlertsOverlayY { get; set; }
+
+    #region Updates
+
+    /// <summary>
+    /// Gets or sets whether the app checks GitHub Releases for updates on startup. Updates are only
+    /// ever staged and applied on exit — never mid-session.
+    /// </summary>
+    public bool AutoUpdateEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets whether pre-release builds are offered. Testers turn this on to receive test
+    /// builds; everyone else stays on stable releases.
+    /// </summary>
+    public bool UpdateToPrereleases { get; set; }
+
+    #endregion
+
+    #region Alert Container Shape
+
+    /// <summary>
+    /// Gets or sets the Alerts overlay window width. Persisted like the Focus overlay's, so a window
+    /// sized to fit a scaled custom video survives a restart instead of resetting to the default.
+    /// </summary>
+    public double AlertsWindowWidth { get; set; } = 550;
+
+    /// <summary>Gets or sets the Alerts overlay window height.</summary>
+    public double AlertsWindowHeight { get; set; } = 250;
+
+    /// <summary>Gets or sets the alert panel's X position inside the overlay window.</summary>
+    public double AlertAchievementLeft { get; set; } = 20;
+
+    /// <summary>Gets or sets the alert panel's Y position inside the overlay window.</summary>
+    public double AlertAchievementTop { get; set; } = 20;
+
+    /// <summary>Gets or sets the alert container width in px.</summary>
+    public double AlertNotificationWidth { get; set; } = 500;
+
+    /// <summary>Gets or sets the alert container height in px. 0 sizes the container to its content.</summary>
+    public double AlertNotificationHeight { get; set; }
+
+    /// <summary>Gets or sets the padding between the container edge and its contents.</summary>
+    public double AlertContainerPadding { get; set; } = 15;
+
+    /// <summary>Gets or sets the container corner radius.</summary>
+    public double AlertContainerCornerRadius { get; set; } = 10;
+
+    /// <summary>Gets or sets where the badge sits: Left, Right, Top, Bottom or Hidden.</summary>
+    public string AlertBadgePlacement { get; set; } = "Left";
+
+    /// <summary>Gets or sets the badge edge length in px.</summary>
+    public double AlertBadgeSize { get; set; } = 96;
+
+    /// <summary>Gets or sets the badge corner radius.</summary>
+    public double AlertBadgeCornerRadius { get; set; } = 5;
+
+    /// <summary>Gets or sets the gap between the badge and the text.</summary>
+    public double AlertContentSpacing { get; set; } = 15;
+
+    #endregion
+
+    #region Custom Alert Videos
+
+    /// <summary>Gets or sets whether achievement unlocks play a custom video alert.</summary>
+    public bool CustomAchievementEnabled { get; set; }
+
+    /// <summary>Gets or sets the path to the custom achievement alert video (.webm).</summary>
+    public string CustomAchievementVideoPath { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the custom achievement video's X offset in px (may be negative).</summary>
+    public double CustomAchievementX { get; set; }
+
+    /// <summary>Gets or sets the custom achievement video's Y offset in px (may be negative).</summary>
+    public double CustomAchievementY { get; set; }
+
+    /// <summary>Gets or sets the scale multiplier applied to the video's native width.</summary>
+    public double CustomAchievementScale { get; set; } = 1.0;
+
+    /// <summary>Gets or sets the video position (ms) at which the panel animates in.</summary>
+    public int CustomAchievementInTime { get; set; }
+
+    /// <summary>Gets or sets the video position (ms) at which the panel animates out.</summary>
+    public int CustomAchievementOutTime { get; set; } = 5200;
+
+    /// <summary>Gets or sets the in-animation duration (ms). 0 snaps into place.</summary>
+    public int CustomAchievementInSpeed { get; set; }
+
+    /// <summary>Gets or sets the out-animation duration (ms).</summary>
+    public int CustomAchievementOutSpeed { get; set; } = 700;
+
+    /// <summary>Gets or sets whether masteries play a custom video alert.</summary>
+    public bool CustomMasteryEnabled { get; set; }
+
+    /// <summary>Gets or sets the path to the custom mastery alert video (.webm).</summary>
+    public string CustomMasteryVideoPath { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the custom mastery video's X offset in px (may be negative).</summary>
+    public double CustomMasteryX { get; set; }
+
+    /// <summary>Gets or sets the custom mastery video's Y offset in px (may be negative).</summary>
+    public double CustomMasteryY { get; set; }
+
+    /// <summary>Gets or sets the scale multiplier applied to the video's native width.</summary>
+    public double CustomMasteryScale { get; set; } = 1.0;
+
+    /// <summary>Gets or sets the video position (ms) at which the panel animates in.</summary>
+    public int CustomMasteryInTime { get; set; }
+
+    /// <summary>Gets or sets the video position (ms) at which the panel animates out.</summary>
+    public int CustomMasteryOutTime { get; set; } = 5200;
+
+    /// <summary>Gets or sets the in-animation duration (ms). 0 snaps into place.</summary>
+    public int CustomMasteryInSpeed { get; set; }
+
+    /// <summary>Gets or sets the out-animation duration (ms).</summary>
+    public int CustomMasteryOutSpeed { get; set; } = 700;
+
+    /// <summary>Gets or sets the custom achievement in-animation direction.</summary>
+    public string CustomAchievementInDirection { get; set; } = "Static";
+
+    /// <summary>Gets or sets the custom achievement out-animation direction.</summary>
+    public string CustomAchievementOutDirection { get; set; } = "Up";
+
+    /// <summary>Gets or sets the custom mastery in-animation direction.</summary>
+    public string CustomMasteryInDirection { get; set; } = "Static";
+
+    /// <summary>Gets or sets the custom mastery out-animation direction.</summary>
+    public string CustomMasteryOutDirection { get; set; } = "Up";
+
+    #endregion
 
     /// <summary>
     /// Gets or sets the User Info overlay X position.

@@ -8,11 +8,30 @@
   <Nullable>enable</Nullable>
   <ImplicitUsings>enable</ImplicitUsings>
   <UseWPF>true</UseWPF>
+
+  <!-- Single source of truth for the build's version. Local builds stay at 0.0.0; the release
+       workflow overrides it from the git tag (-p:Version=1.9.1). Without this the assembly was
+       always 1.0.0.0, so an updater had nothing meaningful to compare against. -->
+  <Version>0.0.0</Version>
+  <Product>Retro Achievement Tracker</Product>
+  <Company>Colossus Gaming</Company>
+  <Description>RetroAchievements overlay and stream layout manager.</Description>
 </PropertyGroup>
+
+  <!-- Developer tooling (the probe/find-game/log-to-file command line entry points and the debug
+       game pin) compiles ONLY when DEV_TOOLS is defined, which is Debug only. A Release build is
+       the Production build: those code paths do not exist in the binary, so they can neither be
+       reached by a tester nor shipped by accident. Define DEV_TOOLS explicitly if you ever need a
+       diagnostic Release build. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>$(DefineConstants);DEV_TOOLS</DefineConstants>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3800.47" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
 
 </Project>

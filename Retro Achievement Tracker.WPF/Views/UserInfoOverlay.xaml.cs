@@ -23,7 +23,20 @@ public partial class UserInfoOverlay : Window
     public bool IsPositionMode
     {
         get => _isPositionMode;
-        set => _isPositionMode = value;
+        set
+        {
+            _isPositionMode = value;
+            UpdatePositioningGuideVisibility();
+        }
+    }
+
+    private void UpdatePositioningGuideVisibility()
+    {
+        if (PositioningGuide == null) return;
+        PositioningGuide.Visibility = _isPositionMode ? Visibility.Visible : Visibility.Collapsed;
+        PositioningGuide.Background = _isPositionMode
+            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(1, 0, 0, 0)) // hit-testable
+            : System.Windows.Media.Brushes.Transparent;
     }
 
     public UserInfoViewModel ViewModel { get; }
@@ -64,7 +77,6 @@ public partial class UserInfoOverlay : Window
                 Top = settings.UserInfoOverlayY.Value;
             }
         }
-        IsPositionMode = settings.PositionModeEnabled;
     }
 
     private void SaveWindowPosition()

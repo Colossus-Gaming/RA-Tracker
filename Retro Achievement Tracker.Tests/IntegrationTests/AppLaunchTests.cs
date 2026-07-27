@@ -29,6 +29,39 @@ public class AppLaunchTests
     private Application? _flaApp;
     private UIA3Automation? _automation;
 
+    // These tests drive the real app, which reads and WRITES the developer's live settings file —
+    // typing credentials into the UI persists them. Snapshot it up front and put it back afterwards
+    // so running the suite can't clobber the real username, API key or overlay layout.
+    private static readonly string SettingsPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RATracker", "settings.json");
+
+    private static string? _settingsBackup;
+
+    [OneTimeSetUp]
+    public void BackUpUserSettings()
+    {
+        _settingsBackup = File.Exists(SettingsPath) ? File.ReadAllText(SettingsPath) : null;
+        TestContext.WriteLine(_settingsBackup == null
+            ? "No existing settings.json to preserve"
+            : $"Backed up settings.json ({_settingsBackup.Length} bytes)");
+    }
+
+    [OneTimeTearDown]
+    public void RestoreUserSettings()
+    {
+        if (_settingsBackup == null) return;
+
+        try
+        {
+            File.WriteAllText(SettingsPath, _settingsBackup);
+            TestContext.WriteLine("Restored settings.json");
+        }
+        catch (Exception ex)
+        {
+            TestContext.WriteLine($"[WARN] Could not restore settings.json: {ex.Message}");
+        }
+    }
+
     [SetUp]
     public void SetUp()
     {
@@ -122,9 +155,16 @@ public class AppLaunchTests
         var mainWindow = WaitForMainWindow(timeout: TimeSpan.FromSeconds(30));
         Assert.That(mainWindow, Is.Not.Null, "Main window should appear");
 
+        // The app auto-starts polling when the saved settings say so, and polling disables the
+        // credential fields (IsEnabled="{Binding IsNotPolling}"). Stop it first, otherwise setting
+        // the username throws ElementNotEnabledException and the test only passes on a machine that
+        // happens to have auto-start turned off.
+        StopPollingIfRunning(mainWindow!);
+
         // Fill in credentials via UI Automation (no mouse/keyboard stealing)
         var usernameBox = FindByAutomationId(mainWindow!, "UsernameTextBox");
         Assert.That(usernameBox, Is.Not.Null, "Username box must exist");
+        Assert.That(usernameBox!.IsEnabled, Is.True, "Username box should be editable once polling is stopped");
 
         // Use ValuePattern to set text without focus
         var usernameValuePattern = usernameBox!.Patterns.Value.PatternOrDefault;
@@ -271,6 +311,29 @@ public class AppLaunchTests
 
         Assert.That(buildProcess.ExitCode, Is.EqualTo(0), "App must build successfully");
         Assert.That(File.Exists(ExePath), Is.True, $"Exe should exist at: {ExePath}");
+    }
+
+    /// <summary>
+    /// Stops polling if the app auto-started it, so the credential fields become editable. No-op
+    /// when polling isn't running.
+    /// </summary>
+    private static void StopPollingIfRunning(Window mainWindow)
+    {
+        var startStop = FindByAutomationId(mainWindow, "StartStopButton");
+        if (startStop == null) return;
+
+        // The button's content flips to "Stop" while polling.
+        if (!(startStop.Name ?? "").Contains("Stop", StringComparison.OrdinalIgnoreCase)) return;
+
+        TestContext.WriteLine("Auto-start was on; stopping polling so credentials can be set");
+        startStop.Patterns.Invoke.PatternOrDefault?.Invoke();
+
+        var usernameBox = FindByAutomationId(mainWindow, "UsernameTextBox");
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (usernameBox != null && !usernameBox.IsEnabled && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(200);
+        }
     }
 
     private void LaunchApp()

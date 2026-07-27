@@ -71,18 +71,8 @@
     </Window.Resources>
 
     <Grid>
-        <!-- Draggable positioning guide (visible when content is hidden) -->
-        <Border x:Name="PositioningGuide" Background="Transparent">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Visibility" Value="Visible"/>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding ElementName=MainContainer, Path=Opacity}" Value="1">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
+        <!-- Draggable positioning guide (visible only when this window's IsPositionMode is true) -->
+        <Border x:Name="PositioningGuide" Background="Transparent" Visibility="Collapsed">
             <Grid>
                 <Rectangle Stroke="#40FFD700" 
                            StrokeThickness="2"

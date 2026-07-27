@@ -294,6 +294,7 @@ public class FocusViewModel : ViewModelBase
                     _settingsService.Settings.FocusBadgeCornerRadius = value;
                     _settingsService.ScheduleSave();
                 });
+                OnPropertyChanged(nameof(BadgeCornerRadiusValue));
             }
         }
     }
@@ -312,6 +313,7 @@ public class FocusViewModel : ViewModelBase
                     _settingsService.Settings.FocusContainerCornerRadius = value;
                     _settingsService.ScheduleSave();
                 });
+                OnPropertyChanged(nameof(ContainerCornerRadiusValue));
             }
         }
     }
@@ -330,6 +332,7 @@ public class FocusViewModel : ViewModelBase
                     _settingsService.Settings.FocusContainerMargin = value;
                     _settingsService.ScheduleSave();
                 });
+                OnPropertyChanged(nameof(ContainerMarginValue));
             }
         }
     }
@@ -348,6 +351,7 @@ public class FocusViewModel : ViewModelBase
                     _settingsService.Settings.FocusContentSpacing = value;
                     _settingsService.ScheduleSave();
                 });
+                OnPropertyChanged(nameof(ContentSpacingMargin));
             }
         }
     }
@@ -382,6 +386,7 @@ public class FocusViewModel : ViewModelBase
                     _settingsService.Settings.FocusLineMargin = value;
                     _settingsService.ScheduleSave();
                 });
+                OnPropertyChanged(nameof(LineMarginValue));
             }
         }
     }
@@ -788,7 +793,7 @@ public class FocusViewModel : ViewModelBase
         Title = "Welcome to the Club";
         Description = "Complete the first level and join the ranks of true retro gamers!";
         Points = "10";
-        BadgeUri = "https://media.retroachievements.org/Badge/00001.png";
+        BadgeUri = "https://media.retroachievements.org/Badge/00000.png";
         CurrentSetName = null;
     }
 

@@ -1,7 +1,10 @@
 ﻿<Application x:Class="RATracker.WPF.App"
 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-xmlns:local="clr-namespace:RATracker.WPF">
+xmlns:local="clr-namespace:RATracker.WPF"
+             ShutdownMode="OnMainWindowClose">
+    <!-- Closing the dashboard ends the session. Overlays are subordinate to it, and the default
+         OnLastWindowClose left the process running whenever any window outlived the main one. -->
     <Application.Resources>
          
     </Application.Resources>

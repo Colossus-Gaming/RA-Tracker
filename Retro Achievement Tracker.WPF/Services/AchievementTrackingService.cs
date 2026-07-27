@@ -10,12 +10,12 @@ namespace RATracker.WPF.Services;
 public class AchievementTrackingService : IDisposable
 {
     /// <summary>
-    /// DEBUG / TESTING override. When &gt; 0, the tracker pins itself to this RetroAchievements
-    /// game ID every poll, ignoring whatever game the user is actually playing. Defaults to 0
-    /// (normal "currently playing" behavior); the running app sets it at startup (see
-    /// <c>App.OnStartup</c>), while unit tests leave it at 0.
-    /// <para>11270 = Final Fantasy VIII (PlayStation) — Core + 2 Bonus subsets, so the subset
-    /// dropdown and per-set alerts can be exercised without booting the game.</para>
+    /// DEBUG / TESTING override. When &gt; 0, the tracker pins itself to this RetroAchievements game
+    /// ID every poll, ignoring whatever game the user is actually playing.
+    /// <para>Always 0 in normal operation — nothing assigns it — so the tracker follows the most
+    /// recently played game. Set it from <c>App.OnStartup</c> inside the <c>DEV_TOOLS</c> block to
+    /// exercise overlays against a specific game without booting it, and remove that again before
+    /// committing. Release builds cannot set it at all.</para>
     /// </summary>
     internal static long DebugForceGameId;
 
@@ -161,12 +161,17 @@ public class AchievementTrackingService : IDisposable
                 return result;
             }
 
-            // Prefer the most-recently-played game that still has published achievements. Games
-            // whose entire set has been demoted/unpublished report TotalAchievements=0 and would
-            // otherwise leave the dashboard stuck at 0/0 with no metadata to show.
-            var pickedGame = recentlyPlayed.FirstOrDefault(g => g.TotalAchievements > 0) ?? recentlyPlayed[0];
+            // The most recently played entry IS the current game — take it as-is.
+            //
+            // This used to skip entries reporting TotalAchievements=0, on the theory that a game
+            // whose set has been demoted/unpublished has "no metadata to show". That premise is
+            // wrong: such a game still returns its title, console, developer, publisher, release
+            // date and all its artwork — only the achievement list is empty, which is accurate.
+            // Skipping it meant the app silently tracked a DIFFERENT game than the one being
+            // played, mis-attributing the dashboard, the overlays and any unlock alerts. Showing
+            // the real game at 0/0 is both truthful and what the user expects.
+            var pickedGame = recentlyPlayed[0];
             var currentGameId = pickedGame.GameId;
-            var skippedCount = recentlyPlayed.IndexOf(pickedGame);
 
             // DEBUG / TESTING override (see DebugForceGameId): pin the tracked game for subset
             // testing, ignoring whatever the user is actually playing.
@@ -177,13 +182,10 @@ public class AchievementTrackingService : IDisposable
             }
 
             bool isNewGame = CurrentProgress == null || currentGameId != CurrentProgress.GameId;
-            if (DebugForceGameId <= 0 && skippedCount > 0)
+            if (DebugForceGameId <= 0)
             {
-                Log($"Currently playing game ID {currentGameId} ({pickedGame.Title}); skipped {skippedCount} demoted entr{(skippedCount == 1 ? "y" : "ies")}; isNewGame={isNewGame}");
-            }
-            else if (DebugForceGameId <= 0)
-            {
-                Log($"Currently playing game ID {currentGameId}, isNewGame={isNewGame}");
+                Log($"Currently playing game ID {currentGameId} ({pickedGame.Title}), " +
+                    $"{pickedGame.TotalAchievements} published achievement(s), isNewGame={isNewGame}");
             }
 
             // Check for recent achievements to detect if we need a full refresh

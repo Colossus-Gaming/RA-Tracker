@@ -67,7 +67,6 @@ public class MainViewModel : ViewModelBase
     // Feature flags
     private bool _enableApiLogging;
     private bool _enableStreamLabels;
-    private bool _positionModeEnabled;
 
     // Recent Unlocks timezone settings
     private bool _recentUnlocksAutoDetectTimezone = true;
@@ -111,8 +110,8 @@ public class MainViewModel : ViewModelBase
         OpenAchievementListOverlayCommand = new RelayCommand(OpenAchievementListOverlay);
         OpenRelatedMediaOverlayCommand = new RelayCommand(OpenRelatedMediaOverlay);
 
-        PreviousFocusCommand = new RelayCommand(PreviousFocus, () => CanNavigateFocus);
-        NextFocusCommand = new RelayCommand(NextFocus, () => CanNavigateFocus);
+        PreviousFocusCommand = new RelayCommand(PreviousFocus, () => CanGoToPreviousFocus);
+        NextFocusCommand = new RelayCommand(NextFocus, () => CanGoToNextFocus);
         SetFocusCommand = new RelayCommand(SetFocus, () => CurrentFocusAchievement != null);
 
         TestAchievementAlertCommand = new RelayCommand(TestAchievementAlert);
@@ -182,7 +181,6 @@ public class MainViewModel : ViewModelBase
             // Feature flags
             _enableApiLogging = settings.EnableApiLogging;
             _enableStreamLabels = settings.EnableStreamLabels;
-            _positionModeEnabled = settings.PositionModeEnabled;
 
             // Configure stream label service
             _streamLabelService.IsEnabled = _enableStreamLabels;
@@ -375,6 +373,39 @@ public class MainViewModel : ViewModelBase
     public bool HasApiStatus => !string.IsNullOrEmpty(ApiStatusText);
 
     /// <summary>
+    /// Update status for the header (download progress, or a staged update awaiting restart).
+    /// </summary>
+    public string UpdateStatusText
+    {
+        get => _updateStatusText;
+        set
+        {
+            if (SetProperty(ref _updateStatusText, value))
+                OnPropertyChanged(nameof(HasUpdateStatus));
+        }
+    }
+    private string _updateStatusText = string.Empty;
+
+    /// <summary>Whether an update message should be shown.</summary>
+    public bool HasUpdateStatus => !string.IsNullOrEmpty(UpdateStatusText);
+
+    /// <summary>
+    /// Kicks off a background update check. Never blocks startup and never restarts the app —
+    /// anything found is staged for the next close (see <see cref="UpdateService"/>).
+    /// </summary>
+    public void StartUpdateCheck()
+    {
+        var settings = SettingsService.Instance.Settings;
+        if (!settings.AutoUpdateEnabled) return;
+
+        var updates = new UpdateService();
+        updates.StatusChanged += (_, status) =>
+            System.Windows.Application.Current?.Dispatcher.Invoke(() => UpdateStatusText = status);
+
+        _ = updates.CheckAndStageAsync(settings.UpdateToPrereleases);
+    }
+
+    /// <summary>
     /// Whether the app is currently using V1 as a fallback (V2 failed).
     /// </summary>
     public bool IsUsingV1Fallback
@@ -489,6 +520,7 @@ public class MainViewModel : ViewModelBase
             if (SetProperty(ref _currentGame, value))
             {
                 UpdateAchievementLists();
+                PrefetchCurrentSetBadges();
                 OnPropertiesChanged(
                     nameof(GameTitle),
                     nameof(GameConsole),
@@ -605,6 +637,9 @@ public class MainViewModel : ViewModelBase
                     nameof(GameCompletionText),
                     nameof(IsMastered));
 
+                // Switching sets swaps the whole visible badge list, so warm the new one.
+                PrefetchCurrentSetBadges();
+
                 // Save the selected set to settings
                 SaveSelectedSetToSettings(value);
 
@@ -707,6 +742,30 @@ public class MainViewModel : ViewModelBase
         }
 
         OnPropertyChanged(nameof(CanNavigateFocus));
+    }
+
+    /// <summary>
+    /// The achievements to display for the current view — the selected set's achievements for a
+    /// multi-set game, or the whole game's list otherwise. Feeds the Achievement List ("Cheevos Set")
+    /// overlay so it follows the dropdown's sub-set selection.
+    /// </summary>
+    public IReadOnlyList<Achievement> CurrentSetAchievements =>
+        GetAchievementsForCurrentSet() ?? new List<Achievement>();
+
+    /// <summary>
+    /// Warms the shared badge cache for the set currently on screen, so an unlock reveal (and every
+    /// overlay that shows a badge) has a decoded image ready instead of waiting on the CDN.
+    /// <para>Runs on game and set changes rather than only when the Cheevos Set overlay opens, so the
+    /// Alerts, Focus and Recent overlays benefit even when that overlay is closed. Capped at the
+    /// cache size so a huge set (Guitar Hero's core set is 634) can't evict its own earlier badges.</para>
+    /// </summary>
+    private void PrefetchCurrentSetBadges()
+    {
+        var achievements = GetAchievementsForCurrentSet();
+        if (achievements == null || achievements.Count == 0) return;
+
+        Converters.BadgeImageCache.Prefetch(
+            achievements.Take(Converters.BadgeImageCache.Capacity).Select(a => a.BadgeUri));
     }
 
     /// <summary>
@@ -832,6 +891,12 @@ public class MainViewModel : ViewModelBase
     public bool HasFocusAchievement => CurrentFocusAchievement != null;
     public bool CanNavigateFocus => LockedAchievements.Count > 1;
 
+    /// <summary>Whether Prev can move back — false at the first achievement (no wrap-around).</summary>
+    public bool CanGoToPreviousFocus => CurrentFocusIndex > 0;
+
+    /// <summary>Whether Next can move forward — false at the last achievement (no wrap-around).</summary>
+    public bool CanGoToNextFocus => CurrentFocusIndex >= 0 && CurrentFocusIndex < LockedAchievements.Count - 1;
+
     public int CurrentFocusIndex
     {
         get => _currentFocusIndex;
@@ -841,6 +906,7 @@ public class MainViewModel : ViewModelBase
             {
                 if (value >= 0 && value < LockedAchievements.Count)
                     CurrentFocusAchievement = LockedAchievements[value];
+                OnPropertiesChanged(nameof(CanGoToPreviousFocus), nameof(CanGoToNextFocus));
             }
         }
     }
@@ -1065,30 +1131,6 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    /// <summary>
-    /// Gets or sets whether Position Mode is enabled for overlay windows.
-    /// When enabled, overlays show positioning guides and can be dragged.
-    /// When disabled, overlays are fully transparent for OBS capture.
-    /// </summary>
-    public bool PositionModeEnabled
-    {
-        get => _positionModeEnabled;
-        set
-        {
-            if (SetProperty(ref _positionModeEnabled, value))
-            {
-                // Notify all open overlay windows
-                PositionModeChanged?.Invoke(this, value);
-
-                SaveSettingIfNotLoading(() =>
-                {
-                    _settingsService.Settings.PositionModeEnabled = value;
-                    _settingsService.ScheduleSave();
-                });
-            }
-        }
-    }
-
     #endregion
 
     #region Recent Unlocks Timezone Settings
@@ -1222,7 +1264,6 @@ public class MainViewModel : ViewModelBase
     public event EventHandler<GameInfo>? GameMastered;
     public event EventHandler<Achievement>? FocusChanged;
     public event EventHandler<TimeZoneInfo>? TimezoneChanged;
-    public event EventHandler<bool>? PositionModeChanged;
 
     /// <summary>Raised when polling begins, so the view can auto-launch configured overlays.</summary>
     public event EventHandler? PollingStarted;
@@ -1250,7 +1291,7 @@ public class MainViewModel : ViewModelBase
         // Create sample achievements for core set - some locked, some unlocked
         var coreAchievements = new List<Achievement>
         {
-            new Achievement { Id = 1, Title = "First Steps", Description = "Complete the tutorial", Points = 5, BadgeUri = "https://media.retroachievements.org/Badge/00001.png", DateEarned = DateTime.Now.AddHours(-2) },
+            new Achievement { Id = 1, Title = "First Steps", Description = "Complete the tutorial", Points = 5, BadgeUri = "https://media.retroachievements.org/Badge/00000.png", DateEarned = DateTime.Now.AddHours(-2) },
             new Achievement { Id = 2, Title = "Explorer", Description = "Discover a hidden area", Points = 10, BadgeUri = "https://media.retroachievements.org/Badge/00002.png", DateEarned = DateTime.Now.AddHours(-1) },
             new Achievement { Id = 999999, Title = "The Absolutely Incredible Master of All Gaming Challenges!", Description = "Defeat the final boss without taking damage, without using healing items, without leveling up past level 10, without equipping any armor or accessories, on Hard difficulty or higher, within 30 minutes of starting the battle, while keeping all party membe", Points = 50, BadgeUri = "https://media.retroachievements.org/Badge/00003.png" },
             new Achievement { Id = 4, Title = "Speed Demon", Description = "Complete level 1 in under 60 seconds", Points = 25, BadgeUri = "https://media.retroachievements.org/Badge/00004.png" },
@@ -1792,36 +1833,33 @@ public class MainViewModel : ViewModelBase
 
     private void PreviousFocus()
     {
-        if (LockedAchievements.Count == 0) return;
+        // Browse only, no wrap-around: stop at the first achievement. Navigating updates the
+        // dashboard preview but does NOT set the focus — only the Set Focus button commits.
+        if (CurrentFocusIndex <= 0) return;
 
-        CurrentFocusIndex = CurrentFocusIndex <= 0
-            ? LockedAchievements.Count - 1
-            : CurrentFocusIndex - 1;
-
-        FocusChanged?.Invoke(this, CurrentFocusAchievement!);
+        CurrentFocusIndex--;
     }
 
     private void NextFocus()
     {
-        if (LockedAchievements.Count == 0) return;
+        // Browse only, no wrap-around: stop at the last achievement.
+        if (CurrentFocusIndex < 0 || CurrentFocusIndex >= LockedAchievements.Count - 1) return;
 
-        CurrentFocusIndex = CurrentFocusIndex >= LockedAchievements.Count - 1
-            ? 0
-            : CurrentFocusIndex + 1;
-
-        FocusChanged?.Invoke(this, CurrentFocusAchievement!);
+        CurrentFocusIndex++;
     }
 
+    /// <summary>
+    /// Commits the previewed achievement as the focus: notifies the overlay (FocusChanged) and
+    /// writes the focus stream labels. This is the only action that "sets" the focus.
+    /// </summary>
     private void SetFocus()
     {
-        if (CurrentFocusAchievement != null)
-        {
-            FocusChanged?.Invoke(this, CurrentFocusAchievement);
+        if (CurrentFocusAchievement == null) return;
 
-            // Write focus stream labels
-            var setName = HasMultipleSets ? SelectedSetName : null;
-            _streamLabelService.WriteFocusLabels(CurrentFocusAchievement, setName);
-        }
+        FocusChanged?.Invoke(this, CurrentFocusAchievement);
+
+        var setName = HasMultipleSets ? SelectedSetName : null;
+        _streamLabelService.WriteFocusLabels(CurrentFocusAchievement, setName);
     }
 
     /// <summary>
@@ -1860,13 +1898,28 @@ public class MainViewModel : ViewModelBase
 
     private void TestAchievementAlert()
     {
+        // Test with the achievement you're currently focused on, so you preview ITS unlock — the Alerts
+        // notification AND the Cheevos Set list badge flip + gold-glow. If everything is already unlocked
+        // (no focus), use the most recently completed one. The list re-syncs on the next poll.
+        var target = CurrentFocusAchievement
+            ?? CurrentSetAchievements
+                .Where(a => a.DateEarned.HasValue)
+                .OrderByDescending(a => a.DateEarned)
+                .FirstOrDefault();
+        if (target != null)
+        {
+            AchievementUnlocked?.Invoke(this, target);
+            return;
+        }
+
         // Create a sample core achievement for testing
         var sample = new Achievement
         {
             Title = "Test Achievement",
             Description = "This is a test notification!",
             Points = 10,
-            BadgeUri = "https://media.retroachievements.org/Badge/00001.png",
+            // A real, published badge (the old 0000x IDs 404 — RA badge IDs are 6 digits).
+            BadgeUri = "https://media.retroachievements.org/Badge/652105.png",
             SetType = AchievementSetType.Core,
             SetName = "Core"
         };
@@ -1889,7 +1942,8 @@ public class MainViewModel : ViewModelBase
             Title = "Bonus Challenge Complete!",
             Description = "This is a subset achievement notification!",
             Points = 25,
-            BadgeUri = "https://media.retroachievements.org/Badge/00002.png",
+            // A real, published badge (the old 0000x IDs 404 — RA badge IDs are 6 digits).
+            BadgeUri = "https://media.retroachievements.org/Badge/652178.png",
             SetType = AchievementSetType.Bonus,
             SetName = "Bonus"
         };

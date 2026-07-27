@@ -22,6 +22,7 @@ mc:Ignorable="d"
         <!-- Visibility Converter -->
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <converters:StringToImageSourceConverter x:Key="StringToImageSource"/>
+        <converters:SizeRadiusToRoundedRectConverter x:Key="RoundedClip"/>
 
         <!-- Easing Functions -->
         <CubicEase x:Key="EaseOut" EasingMode="EaseOut"/>
@@ -148,19 +149,8 @@ mc:Ignorable="d"
     </Window.Resources>
 
     <Grid>
-        <!-- Draggable positioning guide (visible when content is hidden) -->
-        <Border x:Name="PositioningGuide" Background="Transparent">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Visibility" Value="Visible"/>
-                    <Style.Triggers>
-                        <!-- Hide when content is visible -->
-                        <DataTrigger Binding="{Binding ElementName=FocusContainer, Path=Opacity}" Value="1">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
+        <!-- Draggable positioning guide (visible only when IsPositionMode is true) -->
+        <Border x:Name="PositioningGuide" Background="Transparent" Visibility="Collapsed">
             <Grid>
                 <Rectangle Stroke="#40FFD700" 
                            StrokeThickness="2"
@@ -237,7 +227,16 @@ mc:Ignorable="d"
                        Source="{Binding BadgeUri, Converter={StaticResource StringToImageSource}}"
                        Width="{Binding BadgeSize}"
                        Height="{Binding BadgeSize}"
-                       Stretch="UniformToFill"/>
+                       Stretch="UniformToFill">
+                    <!-- Round the image corners (a Border's CornerRadius+ClipToBounds only clips the
+                         square bounds). Re-clips live as BadgeCornerRadius / BadgeSize change. -->
+                    <Image.Clip>
+                        <MultiBinding Converter="{StaticResource RoundedClip}">
+                            <Binding Path="BadgeSize"/>
+                            <Binding Path="BadgeCornerRadius"/>
+                        </MultiBinding>
+                    </Image.Clip>
+                </Image>
             </Border>
             
             <!-- Content Area -->

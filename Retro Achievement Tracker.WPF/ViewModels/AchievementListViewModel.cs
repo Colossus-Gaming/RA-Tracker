@@ -12,6 +12,7 @@ public class AchievementListItem : ViewModelBase
 {
     private Achievement _achievement = null!;
     private bool _isUnlocked;
+    private bool _justUnlocked;
     private double _opacity = 1.0;
 
     public Achievement Achievement
@@ -23,7 +24,17 @@ public class AchievementListItem : ViewModelBase
     public bool IsUnlocked
     {
         get => _isUnlocked;
-        set => SetProperty(ref _isUnlocked, value);
+        set { if (SetProperty(ref _isUnlocked, value)) OnPropertyChanged(nameof(BadgeUri)); }
+    }
+
+    /// <summary>
+    /// Set once when this achievement unlocks live during the session; drives the badge flip +
+    /// gold-glow animation. Stays false for achievements already unlocked when the list loaded.
+    /// </summary>
+    public bool JustUnlocked
+    {
+        get => _justUnlocked;
+        set => SetProperty(ref _justUnlocked, value);
     }
 
     public double Opacity
@@ -70,9 +81,11 @@ public class AchievementListViewModel : ViewModelBase
 
     private ObservableCollection<AchievementListItem> _achievements = new();
 
-    // Layout settings
-    private double _windowWidth = 680;
-    private double _windowHeight = 500;
+    // Layout settings. Defaults are a clean multiple of the 76px badge tile (BadgeSize 64 + spacing 8 +
+    // border 4) plus 32px window chrome: 8 columns -> 8*76+32 = 640, 6 rows -> 6*76+32 = 488. The
+    // overlay snaps back to clean multiples on resize (see AchievementListOverlay.Window_SizeChanged).
+    private double _windowWidth = 640;
+    private double _windowHeight = 488;
     private double _containerCornerRadius = 8;
     private double _containerMargin = 5;
     private double _badgeSize = 64;
@@ -135,7 +148,7 @@ public class AchievementListViewModel : ViewModelBase
     public double ContainerCornerRadius
     {
         get => _containerCornerRadius;
-        set => SetProperty(ref _containerCornerRadius, value);
+        set { if (SetProperty(ref _containerCornerRadius, value)) OnPropertyChanged(nameof(ContainerCornerRadiusValue)); }
     }
 
     public CornerRadius ContainerCornerRadiusValue => new(_containerCornerRadius);
@@ -143,7 +156,7 @@ public class AchievementListViewModel : ViewModelBase
     public double ContainerMargin
     {
         get => _containerMargin;
-        set => SetProperty(ref _containerMargin, value);
+        set { if (SetProperty(ref _containerMargin, value)) OnPropertyChanged(nameof(ContainerMarginValue)); }
     }
 
     public Thickness ContainerMarginValue => new(_containerMargin);
@@ -157,7 +170,7 @@ public class AchievementListViewModel : ViewModelBase
     public double BadgeSpacing
     {
         get => _badgeSpacing;
-        set => SetProperty(ref _badgeSpacing, value);
+        set { if (SetProperty(ref _badgeSpacing, value)) OnPropertyChanged(nameof(BadgeSpacingValue)); }
     }
 
     public Thickness BadgeSpacingValue => new(_badgeSpacing);
@@ -165,7 +178,7 @@ public class AchievementListViewModel : ViewModelBase
     public double BadgeCornerRadius
     {
         get => _badgeCornerRadius;
-        set => SetProperty(ref _badgeCornerRadius, value);
+        set { if (SetProperty(ref _badgeCornerRadius, value)) OnPropertyChanged(nameof(BadgeCornerRadiusValue)); }
     }
 
     public CornerRadius BadgeCornerRadiusValue => new(_badgeCornerRadius);
@@ -293,18 +306,30 @@ public class AchievementListViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Updates an achievement's unlock status.
+    /// Re-evaluates the unlocked/locked/total counts. Call after an item's IsUnlocked changes live
+    /// (a live unlock updates the badge in place and does not re-sort, so the animation isn't disrupted).
     /// </summary>
-    public void UnlockAchievement(int achievementId)
+    public void RefreshProgress() => NotifyProgressChanged();
+
+    /// <summary>
+    /// Moves a just-unlocked item to its slot in the current sort order using an in-place Move, so the
+    /// item container is preserved and FluidMoveBehavior animates the badges sliding to their new grid
+    /// positions. No-op when unlocked-first ordering is off.
+    /// </summary>
+    public void MoveToSortedPosition(AchievementListItem item)
     {
-        var item = Achievements.FirstOrDefault(a => a.Id == achievementId);
-        if (item != null)
-        {
-            item.IsUnlocked = true;
-            OnPropertyChanged(nameof(item.BadgeUri));
-            SortAchievements();
-            NotifyProgressChanged();
-        }
+        if (!ShowUnlockedFirst) return;
+
+        int oldIndex = Achievements.IndexOf(item);
+        if (oldIndex < 0) return;
+
+        var sorted = Achievements
+            .OrderByDescending(a => a.IsUnlocked)
+            .ThenBy(a => a.Achievement.DisplayOrder)
+            .ToList();
+        int newIndex = sorted.IndexOf(item);
+        if (newIndex >= 0 && newIndex != oldIndex)
+            Achievements.Move(oldIndex, newIndex);
     }
 
     /// <summary>

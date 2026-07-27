@@ -135,6 +135,30 @@ public class MainViewModelMultiSetTests
     }
 
     [Test]
+    public void CurrentSetAchievements_FollowsSelectedSet()
+    {
+        // The Achievement List ("Cheevos Set") overlay is fed from CurrentSetAchievements, so it must
+        // return the SELECTED set's achievements (locked + unlocked), not the whole game / core list.
+        var game = CreateMultiSetGame();
+        _viewModel.CurrentGame = game;
+
+        var coreSet = _viewModel.AvailableAchievementSets.First(s => s.SetType == AchievementSetType.Core);
+        var bonusSet = _viewModel.AvailableAchievementSets.First(s => s.SetType == AchievementSetType.Bonus);
+
+        _viewModel.SelectedAchievementSet = coreSet;
+        var coreView = _viewModel.CurrentSetAchievements.Select(a => a.Id).ToList();
+
+        _viewModel.SelectedAchievementSet = bonusSet;
+        var bonusView = _viewModel.CurrentSetAchievements.Select(a => a.Id).ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(coreView, Is.EquivalentTo(new[] { 1, 2, 3, 4, 5, 6 }), "core view = core set's 6 achievements");
+            Assert.That(bonusView, Is.EquivalentTo(new[] { 101, 102, 103 }), "bonus view = bonus set's 3 achievements");
+        });
+    }
+
+    [Test]
     public void SelectedAchievementSet_WhenChanged_UpdatesUnlockedAchievementsList()
     {
         // Arrange
@@ -292,7 +316,7 @@ public class MainViewModelMultiSetTests
     #region Focus Navigation with Multi-Set Tests
 
     [Test]
-    public void FocusNavigation_WorksWithinSelectedSet()
+    public void FocusNavigation_StopsAtLastWithinSelectedSet()
     {
         // Arrange
         var game = CreateMultiSetGame();
@@ -302,19 +326,16 @@ public class MainViewModelMultiSetTests
         var coreSet = _viewModel.AvailableAchievementSets.First(s => s.SetType == AchievementSetType.Core);
         _viewModel.SelectedAchievementSet = coreSet;
 
-        var initialFocusTitle = _viewModel.FocusTitle;
-        
-        // Get count of locked achievements to verify navigation stays within set
         var lockedCount = _viewModel.LockedAchievements.Count;
 
-        // Act - navigate through all locked achievements
-        for (int i = 0; i < lockedCount; i++)
+        // Act - press Next more times than there are achievements
+        for (int i = 0; i < lockedCount + 3; i++)
         {
             _viewModel.NextFocusCommand.Execute(null);
         }
 
-        // Assert - should wrap back to first achievement
-        Assert.That(_viewModel.FocusTitle, Is.EqualTo(initialFocusTitle));
+        // Assert - no wrap-around: stays on the last achievement in the set
+        Assert.That(_viewModel.CurrentFocusIndex, Is.EqualTo(lockedCount - 1));
     }
 
     #endregion

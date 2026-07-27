@@ -6,6 +6,7 @@ xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 xmlns:controls="clr-namespace:RATracker.WPF.Controls"
 xmlns:converters="clr-namespace:RATracker.WPF.Converters"
 xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
+xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
 mc:Ignorable="d"
         Title="Alerts Overlay"
         Width="{Binding WindowWidth, Mode=TwoWay}"
@@ -29,15 +30,44 @@ mc:Ignorable="d"
     </Window.Resources>
 
     <Canvas x:Name="OverlayCanvas" Background="Transparent">
+        <!-- Custom-alert video surface. WebView2 rather than MediaElement because alert .webm files
+             are VP8/VP9 with an alpha channel, which MediaElement cannot decode. Declared first so
+             it sits beneath the notification panel, and hit-test invisible so it never swallows the
+             drag used to reposition the overlay. Collapsed unless a custom alert is playing. -->
+        <!-- WebView2 hosts native child HWNDs ("Chrome Legacy Window") that take OS mouse input
+             across the whole control rect. Neither IsHitTestVisible="False", IsEnabled="False", nor
+             WS_EX_TRANSPARENT on the children stops it — all three verified against WindowFromPoint.
+             So while the video is on screen nothing beneath it is clickable in WPF. Edit mode works
+             around this by having the page forward pointer events back to the host (see the
+             setEditMode/edit hooks in VideoPageHtml) and doing the drag maths in C#. -->
+        <wv2:WebView2 x:Name="VideoView"
+                      Canvas.Left="0" Canvas.Top="0"
+                      Width="{Binding WindowWidth}"
+                      Height="{Binding WindowHeight}"
+                      Visibility="Collapsed"/>
+
+        <!-- Edit-mode outline showing the custom video's bounds. Purely visual: the video can't be
+             dragged in WPF because WebView2's native child window takes the mouse, so the drag is
+             driven by pointer events the page forwards back to the host. Note the outline falls
+             outside the window entirely when the video is scaled up, which is why edit mode also
+             shows a numeric readout. -->
+        <Border x:Name="VideoEditHandle"
+                Canvas.Left="0" Canvas.Top="0"
+                Visibility="Collapsed"
+                Background="#1800A0FF"
+                BorderBrush="#FF00A0FF"
+                BorderThickness="2"
+                IsHitTestVisible="False"/>
+
         <!-- Draggable positioning guide (visible only in Position Mode) -->
         <Border x:Name="PositioningGuide"
                 Canvas.Left="0"
                 Canvas.Top="0"
                 Width="{Binding WindowWidth}"
                 Height="{Binding WindowHeight}"
-                Background="#01000000"
-                IsHitTestVisible="True"
-                Visibility="Collapsed">
+                Background="Transparent"
+                Visibility="Collapsed"
+                IsHitTestVisible="True">
             <Grid>
                 <!-- Dashed border using Rectangle -->
                 <Rectangle Stroke="#40FF9500" 
@@ -69,10 +99,14 @@ mc:Ignorable="d"
                 Canvas.Left="{Binding AchievementLeft}"
                 Canvas.Top="{Binding AchievementTop}"
                 Width="{Binding NotificationWidth}"
+                Height="{Binding NotificationHeightValue}"
                 Background="{Binding BackgroundColor}"
                 CornerRadius="{Binding ContainerCornerRadiusValue}"
                 Opacity="0"
-                RenderTransformOrigin="0.5,0.5">
+                RenderTransformOrigin="0.5,0.5"
+                MouseLeftButtonDown="AchievementContainer_MouseLeftButtonDown"
+                MouseMove="AchievementContainer_MouseMove"
+                MouseLeftButtonUp="AchievementContainer_MouseLeftButtonUp">
             <Border.RenderTransform>
                 <TranslateTransform x:Name="AchievementTransform"/>
             </Border.RenderTransform>
@@ -94,24 +128,27 @@ mc:Ignorable="d"
             </Border.Effect>
             
             <Grid>
-            <Grid Margin="15">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+            <!-- DockPanel rather than a fixed two-column Grid so the badge can sit on any edge
+                 (or be hidden). That, plus an explicit container height, is what lets the alert
+                 be reshaped away from the default wide banner. -->
+            <DockPanel Margin="{Binding ContainerPaddingThickness}" LastChildFill="True">
 
                 <!-- Badge -->
-                <Border Grid.Column="0"
+                <Border DockPanel.Dock="{Binding BadgeDock}"
+                        Margin="{Binding BadgeMargin}"
                         CornerRadius="{Binding BadgeCornerRadiusValue}"
-                        ClipToBounds="True">
+                        ClipToBounds="True"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding BadgeVisible, Converter={StaticResource BoolToVis}}">
                     <Image Source="{Binding BadgeUri, Converter={StaticResource StringToImageSource}}"
                            Width="{Binding BadgeSize}"
                            Height="{Binding BadgeSize}"
                            Stretch="UniformToFill"/>
                 </Border>
-                
-                <!-- Content -->
-                <Grid Grid.Column="1" Margin="{Binding ContentSpacingMargin}">
+
+                <!-- Content (fills whatever the badge leaves) -->
+                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -232,7 +269,7 @@ mc:Ignorable="d"
                             VerticalTextAlignment="Center"/>
                     </Grid>
                 </Grid>
-            </Grid>
+            </DockPanel>
 
             <!-- Set-type badge (shown only for non-core achievement notifications) -->
             <Border HorizontalAlignment="Right"
@@ -252,6 +289,29 @@ mc:Ignorable="d"
                            FontSize="12"/>
             </Border>
             </Grid>
+        </Border>
+
+        <!-- Edit-mode readout. Declared last so it draws above everything, and hit-test invisible so
+             it never intercepts a drag. Needed because a scaled-up video's rect (and therefore its
+             drag handle's borders) can fall entirely outside the window, leaving no on-screen cue. -->
+        <Border x:Name="EditInfoChip"
+                Canvas.Left="8" Canvas.Top="8"
+                Visibility="Collapsed"
+                IsHitTestVisible="False"
+                Background="#E6101010"
+                BorderBrush="#FF00A0FF" BorderThickness="1"
+                CornerRadius="4" Padding="9,6">
+            <StackPanel>
+                <TextBlock Text="EDIT MODE"
+                           Foreground="#FF00A0FF" FontFamily="Segoe UI"
+                           FontSize="11" FontWeight="Bold"/>
+                <TextBlock x:Name="EditInfoText"
+                           Foreground="White" FontFamily="Consolas" FontSize="11"
+                           Margin="0,4,0,0"/>
+                <TextBlock Text="drag panel / drag elsewhere to move video / scroll to scale"
+                           Foreground="#FF9AA0A6" FontFamily="Segoe UI" FontSize="10"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
         </Border>
     </Canvas>
 </Window>

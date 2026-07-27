@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
         xmlns:converters="clr-namespace:RATracker.WPF.Converters"
+        xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
         mc:Ignorable="d"
         Title="Achievement List Overlay"
         Width="{Binding WindowWidth, Mode=TwoWay}"
@@ -131,18 +132,8 @@
     </Window.Resources>
 
     <Grid>
-        <!-- Draggable positioning guide (visible when content is hidden) -->
-        <Border x:Name="PositioningGuide" Background="Transparent">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Visibility" Value="Visible"/>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding ElementName=MainContainer, Path=Opacity}" Value="1">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
+        <!-- Draggable positioning guide (visible only when this window's IsPositionMode is true) -->
+        <Border x:Name="PositioningGuide" Background="Transparent" Visibility="Collapsed">
             <Grid>
                 <Rectangle Stroke="#40FFD700" 
                            StrokeThickness="2"
@@ -208,9 +199,11 @@
                            HorizontalAlignment="Center"/>
             </Border>
             
-            <!-- Achievement Grid -->
-            <ScrollViewer Grid.Row="1" 
-                          VerticalScrollBarVisibility="Auto" 
+            <!-- Achievement Grid. Scrollbar hidden (still scrolls via wheel) so it never shows on the
+                 overlay and never steals content width — the window is sized to a clean multiple of the
+                 badge tile so columns fill edge-to-edge with no partial column. -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Hidden"
                           HorizontalScrollBarVisibility="Disabled"
                           Padding="8">
                 <ItemsControl ItemsSource="{Binding Achievements}">
@@ -221,39 +214,89 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
+                            <!-- Outer cell: FluidMoveBehavior slides it to its new grid slot when the list
+                                 reorders (unlocked-first), and the gold glow lives here (its RenderTransform
+                                 is owned by FluidMove, so the flip goes on the inner badge instead). -->
                             <Border Margin="{Binding DataContext.BadgeSpacingValue, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CornerRadius="{Binding DataContext.BadgeCornerRadiusValue, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    ClipToBounds="True"
-                                    Opacity="{Binding Opacity}"
-                                    ToolTipService.InitialShowDelay="300"
-                                    ToolTipService.ShowDuration="30000"
-                                    Cursor="Hand">
-                                
-                                <!-- Dynamic border based on unlock status -->
+                                    Opacity="{Binding Opacity}">
+                                <b:Interaction.Behaviors>
+                                    <b:FluidMoveBehavior AppliesTo="Self" Duration="0:0:0.45">
+                                        <b:FluidMoveBehavior.EaseX><SineEase EasingMode="EaseInOut"/></b:FluidMoveBehavior.EaseX>
+                                        <b:FluidMoveBehavior.EaseY><SineEase EasingMode="EaseInOut"/></b:FluidMoveBehavior.EaseY>
+                                    </b:FluidMoveBehavior>
+                                </b:Interaction.Behaviors>
+                                <Border.Effect>
+                                    <DropShadowEffect x:Name="UnlockGlow" Color="#FFD700" BlurRadius="0" ShadowDepth="0" Opacity="0"/>
+                                </Border.Effect>
                                 <Border.Style>
                                     <Style TargetType="Border">
-                                        <Setter Property="BorderThickness" Value="{Binding DataContext.LockedBorderThickness, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                        <Setter Property="BorderBrush" Value="{Binding DataContext.LockedBorderColor, RelativeSource={RelativeSource AncestorType=Window}}"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsUnlocked}" Value="True">
-                                                <Setter Property="BorderThickness" Value="{Binding DataContext.UnlockedBorderThickness, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                                <Setter Property="BorderBrush" Value="{Binding DataContext.UnlockedBorderColor, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            <!-- Live unlock: flash a gold glow (the flip is on the inner badge). -->
+                                            <DataTrigger Binding="{Binding JustUnlocked}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
+                                                                             From="0" To="45" BeginTime="0:0:0.30" Duration="0:0:0.35" AutoReverse="True"/>
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
+                                                                             From="0" To="1" BeginTime="0:0:0.30" Duration="0:0:0.35" AutoReverse="True"/>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                
-                                <!-- Tooltip -->
-                                <Border.ToolTip>
-                                    <ToolTip Template="{StaticResource AchievementTooltipTemplate}"/>
-                                </Border.ToolTip>
-                                
-                                <!-- Badge Image (via safe converter: bad/empty URIs -> null, never throw) -->
-                                <Image Source="{Binding BadgeUri, Converter={StaticResource StringToImageSource}}"
-                                       Width="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                       Height="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                       Stretch="UniformToFill"
-                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                                <!-- Inner badge: rounded/clipped image, unlock border colour, and the card-flip. -->
+                                <Border CornerRadius="{Binding DataContext.BadgeCornerRadiusValue, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        ClipToBounds="True"
+                                        RenderTransformOrigin="0.5,0.5"
+                                        ToolTipService.InitialShowDelay="300"
+                                        ToolTipService.ShowDuration="30000"
+                                        Cursor="Hand">
+                                    <Border.RenderTransform>
+                                        <ScaleTransform x:Name="FlipScale"/>
+                                    </Border.RenderTransform>
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderThickness" Value="{Binding DataContext.LockedBorderThickness, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            <Setter Property="BorderBrush" Value="{Binding DataContext.LockedBorderColor, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsUnlocked}" Value="True">
+                                                    <Setter Property="BorderThickness" Value="{Binding DataContext.UnlockedBorderThickness, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                    <Setter Property="BorderBrush" Value="{Binding DataContext.UnlockedBorderColor, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                </DataTrigger>
+                                                <!-- Live unlock: card-flip (grayscale->colour swap happens edge-on). -->
+                                                <DataTrigger Binding="{Binding JustUnlocked}" Value="True">
+                                                    <DataTrigger.EnterActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)">
+                                                                    <EasingDoubleKeyFrame KeyTime="0:0:0" Value="1"/>
+                                                                    <EasingDoubleKeyFrame KeyTime="0:0:0.30" Value="0">
+                                                                        <EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseIn"/></EasingDoubleKeyFrame.EasingFunction>
+                                                                    </EasingDoubleKeyFrame>
+                                                                    <EasingDoubleKeyFrame KeyTime="0:0:0.60" Value="1">
+                                                                        <EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseOut"/></EasingDoubleKeyFrame.EasingFunction>
+                                                                    </EasingDoubleKeyFrame>
+                                                                </DoubleAnimationUsingKeyFrames>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </DataTrigger.EnterActions>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Border.ToolTip>
+                                        <ToolTip Template="{StaticResource AchievementTooltipTemplate}"/>
+                                    </Border.ToolTip>
+                                    <Image Source="{Binding BadgeUri, Converter={StaticResource StringToImageSource}}"
+                                           Width="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Height="{Binding DataContext.BadgeSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Stretch="UniformToFill"
+                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                </Border>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
