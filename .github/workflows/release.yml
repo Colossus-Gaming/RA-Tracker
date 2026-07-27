@@ -143,8 +143,20 @@ jobs:
             Write-Host "Release $tag already exists; uploading assets to it"
           }
 
-          $assets = @(Get-ChildItem -Path releases -File | ForEach-Object { $_.FullName })
+          # Skip the portable zip. Velopack always emits one and there is no flag to suppress it,
+          # but publishing it alongside the installer leaves a non-technical user choosing between
+          # two ~75 MB downloads. Setup.exe is the only thing anyone should click; the remaining
+          # files (RELEASES, releases.win.json, the .nupkg) are the feed the in-app updater reads,
+          # so they must stay. Nothing references the portable zip.
+          $assets = @(
+            Get-ChildItem -Path releases -File |
+              Where-Object { $_.Name -notlike '*-Portable.zip' } |
+              ForEach-Object { $_.FullName }
+          )
           if ($assets.Count -eq 0) { throw "vpk produced no release artifacts" }
+          if (-not ($assets | Where-Object { $_ -like '*Setup.exe' })) {
+            throw "No Setup.exe was produced - the installer is the whole point of the release"
+          }
           Write-Host "Uploading $($assets.Count) asset(s)"
 
           # Splat so each path is a separate argument to gh.

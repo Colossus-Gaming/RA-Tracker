@@ -1,35 +1,24 @@
 # RA Tracker Layout Manager
 
-RetroAchievements overlay tracker focused on the WPF (.NET 8) implementation.
+RetroAchievements overlay tracker for streamers, built on WPF (.NET 8).
 
-## Current Components
+## Install
 
-- `Retro Achievement Tracker.WPF`: main app (active)
-- `Retro Achievement Tracker.Tests`: automated tests
-- `Installer`: Visual Studio setup project
+1. Download **`ColossusGaming.RATracker-win-Setup.exe`** from the [latest release](https://github.com/Colossus-Gaming/RA-Tracker/releases/latest).
+2. Double-click it.
 
-Legacy WinForms/WebView2 sources were removed from this repository.
+That's the whole install. There is nothing else to set up — the .NET runtime is bundled inside the
+installer, so you do not need the .NET SDK, Visual Studio, or any command line. Setup adds a Desktop
+icon and a Start Menu entry.
 
-## Quick Start
+Windows may show a **"Windows protected your PC"** prompt, because the build is not code-signed yet.
+Choose **More info → Run anyway**.
 
-Prerequisites:
-- Windows
-- .NET 8 SDK
-- Visual Studio 2022 (recommended for WPF + installer workflows)
+### Updates
 
-Build and test:
-
-```powershell
-dotnet restore
-dotnet build
-dotnet test "Retro Achievement Tracker.Tests/Retro Achievement Tracker.Tests.csproj"
-```
-
-Run the app:
-
-```powershell
-dotnet run --project "Retro Achievement Tracker.WPF/Retro Achievement Tracker.WPF.csproj"
-```
+The app updates itself. It checks the latest release on startup, downloads anything new in the
+background, and installs it the next time you close the app — so an update can never restart you
+mid-stream. When one is waiting you will see a note in the header.
 
 ## Credentials
 
@@ -45,11 +34,29 @@ $env:RA_PASSWORD = "your-password"      # used for the behind-the-scenes session
 
 Multi-set games (Core / Bonus / Specialty / Exclusive) are tracked per set: achievements are tagged with their set membership on the v2 path and grouped into per-set lists. The public v1 API has no subset model, so on V1 fallback a game shows a single Core set. See [docs/guides/v2-status.md](docs/guides/v2-status.md) for the current API reality.
 
+## Development
+
+Only needed if you are working on the app itself — users should install from the release above.
+
+Prerequisites: Windows and the .NET 8 SDK.
+
+```powershell
+dotnet restore
+dotnet build
+dotnet test "Retro Achievement Tracker.Tests/Retro Achievement Tracker.Tests.csproj"
+dotnet run --project "Retro Achievement Tracker.WPF/Retro Achievement Tracker.WPF.csproj"
+```
+
+Releases are produced by [`.github/workflows/release.yml`](.github/workflows/release.yml) when a
+`v*` tag is pushed on `main`: it publishes a self-contained build, packages it with Velopack, and
+uploads the installer. Developer tooling (the `--probe-*` commands, file logging, the debug game
+pin) compiles only in Debug builds, so a Release build never carries it.
+
 ## Repository Layout
 
 - `Retro Achievement Tracker.WPF/`: WPF app source
 - `Retro Achievement Tracker.Tests/`: NUnit test suite
-- `Installer/`: `.vdproj` installer project
+- `.github/workflows/`: CI and release automation
 - `docs/`: guides, plans, and historical notes
 
 ## Documentation
