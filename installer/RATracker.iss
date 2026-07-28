@@ -61,12 +61,10 @@ SelectDirBrowseLabel=To continue, click Next. To choose a different folder, clic
 ; Extracted to a temp folder and run; not installed alongside the app.
 Source: "{#VelopackSetup}"; DestDir: "{tmp}"; DestName: "VelopackSetup.exe"; Flags: deleteafterinstall ignoreversion
 
-[Run]
-; Hand the user's chosen directory to Velopack, which performs the real install.
-Filename: "{tmp}\VelopackSetup.exe"; \
-  Parameters: "--silent --installto ""{app}"""; \
-  StatusMsg: "Installing {#AppName}..."; \
-  Flags: waituntilterminated
+; NOTE: the payload is deliberately NOT run from a [Run] entry. A [Run] entry ignores the child
+; process's exit code, so if Velopack failed the wizard still reported success and the user was left
+; with "it said it installed, but nothing installed". It is executed from CurStepChanged below,
+; where the exit code is checked and the result verified on disk.
 
 [Code]
 { Reject locations the user cannot write to. Installing into Program Files would appear to succeed
@@ -102,4 +100,74 @@ begin
       Result := False;
     end;
   end;
+end;
+
+{ Runs for silent installs too, unlike NextButtonClick, so /VERYSILENT /DIR=... cannot bypass the
+  writable-location rule. Returning a non-empty string aborts setup with that message. }
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  if not IsWritableLocation(ExpandConstant('{app}')) then
+    Result := 'The chosen folder requires administrator rights, which would prevent automatic updates. ' +
+              'Choose a folder inside your user profile or on another drive.';
+end;
+
+{ Runs the bundled Velopack installer and reports honestly on the result.
+
+  This is the whole reason the payload is not a [Run] entry: Exec gives us the exit code, and we
+  additionally confirm the application executable actually exists afterwards. Without both checks a
+  failed or blocked payload (antivirus quarantine, a locked directory, a half-extracted download)
+  produced a wizard that cheerfully announced success while installing nothing. }
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+  Payload: String;
+  InstalledExe: String;
+  Detail: String;
+begin
+  if CurStep <> ssPostInstall then
+    Exit;
+
+  Payload := ExpandConstant('{tmp}\VelopackSetup.exe');
+  InstalledExe := ExpandConstant('{app}\RATracker.WPF.exe');
+
+  if not FileExists(Payload) then
+  begin
+    RaiseException('The installer payload is missing. The download may be incomplete or was ' +
+                   'partially removed by antivirus. Please download the installer again.');
+    Exit;
+  end;
+
+  Log('Running Velopack payload: ' + Payload);
+
+  if not Exec(Payload, '--silent --installto "' + ExpandConstant('{app}') + '"',
+              '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  begin
+    RaiseException('{#AppName} could not be installed: the bundled installer would not start.' + #13#10 +
+                   'This is usually antivirus blocking it. Allow the installer and try again.');
+    Exit;
+  end;
+
+  Log('Velopack payload exit code: ' + IntToStr(ResultCode));
+
+  if ResultCode <> 0 then
+  begin
+    RaiseException('{#AppName} could not be installed. The bundled installer exited with code ' +
+                   IntToStr(ResultCode) + '.' + #13#10#13#10 +
+                   'Antivirus software blocking the installer is the most common cause. ' +
+                   'Re-run with /LOG="%TEMP%\ratracker-install.log" and share that file to diagnose.');
+    Exit;
+  end;
+
+  { Exit code 0 is necessary but not sufficient - confirm something is actually on disk. }
+  if not FileExists(InstalledExe) then
+  begin
+    Detail := 'The installer reported success but no application was written to:' + #13#10 +
+              ExpandConstant('{app}') + #13#10#13#10 +
+              'This usually means antivirus removed the files immediately after extraction.';
+    RaiseException(Detail);
+    Exit;
+  end;
+
+  Log('Install verified at: ' + InstalledExe);
 end;
