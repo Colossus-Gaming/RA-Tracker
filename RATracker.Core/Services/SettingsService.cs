@@ -187,10 +187,18 @@ public class SettingsService
         catch (CryptographicException)
         {
             // May be plain text from a fallback path, or an older format.
+            //
+            // A DPAPI blob is itself valid Base64, so this path also catches genuinely
+            // undecryptable data - e.g. settings.json copied to another PC, or a Windows
+            // password reset that invalidated the master key. Decoding that yields ~60
+            // characters of mojibake, and returning it would leave the caller unable to
+            // tell a corrupt key from a real one: the app would look signed in and fail
+            // every API call. Only hand back something that could actually be a key.
             try
             {
                 var bytes = Convert.FromBase64String(encryptedKey);
-                return Encoding.UTF8.GetString(bytes);
+                var text = Encoding.UTF8.GetString(bytes);
+                return LooksLikeApiKey(text) ? text : string.Empty;
             }
             catch
             {
@@ -203,6 +211,18 @@ public class SettingsService
             return string.Empty;
         }
     }
+
+    /// <summary>
+    /// Whether a decoded string is plausibly a RetroAchievements API key rather than the
+    /// mojibake you get from Base64-decoding an undecryptable DPAPI blob.
+    /// </summary>
+    /// <remarks>
+    /// RA keys are short printable ASCII. Deliberately permissive about which characters
+    /// are allowed - the point is only to reject binary garbage, not to validate the key,
+    /// which the API itself does.
+    /// </remarks>
+    private static bool LooksLikeApiKey(string text) =>
+        text.Length is > 0 and <= 128 && text.All(c => c is >= ' ' and <= '~');
 
     #endregion
 

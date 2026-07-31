@@ -380,19 +380,40 @@ Height="790" Width="900"
                                   Foreground="{StaticResource TextMuted}" FontSize="11"
                                   Margin="0,0,8,0" VerticalAlignment="Bottom" Padding="2,0,0,6"
                                   IsEnabled="{Binding IsNotPolling}"/>
-                        <Button AutomationProperties.AutomationId="StartStopButton" Command="{Binding TogglePollingCommand}" Width="90" VerticalAlignment="Bottom">
+                        <Button AutomationProperties.AutomationId="StartStopButton" Command="{Binding TogglePollingCommand}" MinWidth="90" VerticalAlignment="Bottom">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource ModernButton}">
+                                    <!-- The glyph rides in Tag, not ContentStringFormat. A ContentPresenter
+                                         caches the format string it was created with, so a trigger that swaps
+                                         ContentStringFormat is silently ignored and the Stop state renders the
+                                         play glyph. Tag is an ordinary DP and re-renders correctly. -->
+                                    <Setter Property="Tag" Value="&#x25B6;"/>
                                     <Setter Property="Content" Value="{loc:Loc Header_Start}"/>
-                                    <Setter Property="ContentStringFormat" Value="&#x25B6; {0}"/>
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <!-- Margin/Foreground are set explicitly because the window-wide
+                                                     implicit TextBlock style would otherwise inject Margin="3"
+                                                     and its own Foreground into the button face. -->
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                               Margin="0,0,6,0"/>
+                                                    <TextBlock Text="{Binding}"
+                                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                               Margin="0"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
                                     <Setter Property="Background" Value="#2D7D46"/>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter Property="Background" Value="#3D9D56"/>
                                         </Trigger>
                                         <DataTrigger Binding="{Binding IsPolling}" Value="True">
+                                            <Setter Property="Tag" Value="&#x25A0;"/>
                                             <Setter Property="Content" Value="{loc:Loc Header_Stop}"/>
-                                            <Setter Property="ContentStringFormat" Value="&#x25A0; {0}"/>
                                             <Setter Property="Background" Value="#C42B1C"/>
                                         </DataTrigger>
                                         <MultiDataTrigger>
@@ -543,9 +564,9 @@ Height="790" Width="900"
                                     <!-- Achievement Set Selector + set-type badge -->
                                     <StackPanel Orientation="Horizontal" Margin="0,5,0,0"
                                                 Visibility="{Binding HasAchievementSets, Converter={StaticResource BoolToVis}}">
-                                        <TextBlock Text="{loc:Loc Dash_Set}"
-                                                   Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                                        <TextBlock Text=": " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                                        <!-- One TextBlock, two Runs: a second TextBlock would pick up the
+                                             implicit Margin="3" and open a 6px hole before the colon. -->
+                                        <TextBlock Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"><Run Text="{loc:Loc Dash_Set}"/><Run Text=": "/></TextBlock>
                                         <!-- Selected set-type badge, moved to the LEFT of the dropdown so a long
                                              set name can never push it off the panel/screen. -->
                                         <Border Margin="0,0,6,0" Padding="5,1" CornerRadius="5"
@@ -606,8 +627,7 @@ Height="790" Width="900"
                                 <StackPanel Grid.Column="2" VerticalAlignment="Top"
                                             HorizontalAlignment="Right" Margin="15,0,0,0">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <TextBlock Text="{loc:Loc Dash_Progress}" Foreground="{StaticResource TextSecondary}"/>
-                                        <TextBlock Text=": " Foreground="{StaticResource TextSecondary}"/>
+                                        <TextBlock Foreground="{StaticResource TextSecondary}"><Run Text="{loc:Loc Dash_Progress}"/><Run Text=": "/></TextBlock>
                                         <TextBlock Text="{Binding GameCompletionText}" FontWeight="Bold">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
@@ -660,9 +680,12 @@ Height="790" Width="900"
                             
                             <!-- Navigation Buttons -->
                             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
-                                <Button Content="{loc:Loc Dash_Prev}" ContentStringFormat="&#x25C0; {0}" Style="{StaticResource ModernButton}" Command="{Binding PreviousFocusCommand}" Width="80"/>
-                                <Button Content="{loc:Loc Dash_SetFocus}" Style="{StaticResource PrimaryButton}" Command="{Binding SetFocusCommand}" Width="100"/>
-                                <Button Content="{loc:Loc Dash_Next}" ContentStringFormat="{}{0} &#x25B6;" Style="{StaticResource ModernButton}" Command="{Binding NextFocusCommand}" Width="80"/>
+                                <!-- MinWidth, not Width: translated captions are longer than English
+                                     ("Precedente", "Imposta focus") and a fixed width clips them
+                                     mid-word with no ellipsis. -->
+                                <Button Content="{loc:Loc Dash_Prev}" ContentStringFormat="&#x25C0; {0}" Style="{StaticResource ModernButton}" Command="{Binding PreviousFocusCommand}" MinWidth="80"/>
+                                <Button Content="{loc:Loc Dash_SetFocus}" Style="{StaticResource PrimaryButton}" Command="{Binding SetFocusCommand}" MinWidth="100"/>
+                                <Button Content="{loc:Loc Dash_Next}" ContentStringFormat="{}{0} &#x25B6;" Style="{StaticResource ModernButton}" Command="{Binding NextFocusCommand}" MinWidth="80"/>
                             </StackPanel>
                             
                             <!-- Achievement Info - fills remaining space -->

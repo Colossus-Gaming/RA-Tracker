@@ -4,12 +4,20 @@
     <!-- Deliberately net8.0, NOT net8.0-windows. That is the whole point of this project: it is the
          platform-neutral half of the app (RetroAchievements API access, mapping, tracking, settings,
          stream labels) with no UI framework dependency, so a WPF shell and an Avalonia shell can
-         both consume it. If a Windows-only type ever creeps in here, this TFM makes it a build
-         error rather than a runtime surprise on macOS or Linux. -->
+         both consume it. -->
     <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>RATracker.Core</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- CA1416 (platform compatibility) is a warning by default, so a Windows-only call would
+         build clean here and only fail at runtime on macOS or Linux - the exact surprise this
+         project exists to prevent. Promoting it to an error is what actually enforces the
+         neutrality above; without it the TFM alone guarantees nothing. Code that genuinely needs
+         a Windows API must say so with [SupportedOSPlatform("windows")] and sit behind an
+         abstraction, the way DPAPI sits behind ICredentialProtector. -->
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <WarningsAsErrors>$(WarningsAsErrors);CA1416</WarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

@@ -112,4 +112,48 @@ public class LocalizationServiceTests
     {
         Assert.That(LocalizationService.Instance["No_Such_Key"], Is.EqualTo("No_Such_Key"));
     }
+
+    /// <summary>
+    /// "System default" has to keep meaning the OS language, not "whatever was picked last".
+    /// </summary>
+    /// <remarks>
+    /// Apply() overwrites CurrentUICulture, so resolving the empty code by reading
+    /// CurrentUICulture at call time would make this a no-op: a user who picked German and
+    /// then chose "System default" would just stay in German with no way back.
+    /// </remarks>
+    [Test]
+    public void SystemDefault_ReturnsToTheOsLanguage_NotTheLastSelectedOne()
+    {
+        var service = LocalizationService.Instance;
+        var osLanguage = service.CurrentLanguage;   // nothing selected yet in this fixture
+
+        try
+        {
+            service.SetLanguage("de");
+            Assert.That(service.CurrentLanguage, Is.EqualTo("de"), "sanity: explicit selection applies");
+
+            service.SetLanguage("");
+            Assert.That(service.CurrentLanguage, Is.EqualTo(osLanguage),
+                "'System default' stayed on the previously selected language instead of the OS language.");
+        }
+        finally
+        {
+            service.SetLanguage("");
+        }
+    }
+
+    [Test]
+    public void UnknownLanguageCode_FallsBackToTheOsLanguageRatherThanThrowing()
+    {
+        var service = LocalizationService.Instance;
+        try
+        {
+            Assert.DoesNotThrow(() => service.SetLanguage("not-a-culture"));
+            Assert.That(service.CurrentLanguage, Is.Not.Empty);
+        }
+        finally
+        {
+            service.SetLanguage("");
+        }
+    }
 }

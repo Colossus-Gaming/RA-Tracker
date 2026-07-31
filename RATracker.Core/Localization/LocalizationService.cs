@@ -26,6 +26,22 @@ public sealed class LocalizationService : INotifyPropertyChanged
 
     private CultureInfo _culture = CultureInfo.CurrentUICulture;
 
+    /// <summary>
+    /// What "System default" resolves to: the display language the user picked in Windows.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately NOT <see cref="CultureInfo.InstalledUICulture"/>. Despite the name, on .NET
+    /// that property returns the user's *regional format* (LOCALE_SNAME), not their display
+    /// language - so a German speaker whose regional format is English (United States) would be
+    /// shown an English UI even though Windows itself is in German.
+    /// <para>
+    /// Captured once at startup because <see cref="Apply"/> overwrites CurrentUICulture; reading
+    /// it later would return whatever language was last selected rather than the OS setting, so
+    /// picking a language and then switching back to "System default" would be a no-op.
+    /// </para>
+    /// </remarks>
+    private static readonly CultureInfo OperatingSystemLanguage = CultureInfo.CurrentUICulture;
+
     private LocalizationService() { }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -68,7 +84,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
 
         if (string.IsNullOrWhiteSpace(languageCode))
         {
-            culture = CultureInfo.InstalledUICulture;
+            culture = OperatingSystemLanguage;
         }
         else
         {
@@ -78,7 +94,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
             }
             catch (CultureNotFoundException)
             {
-                culture = CultureInfo.InstalledUICulture;
+                culture = OperatingSystemLanguage;
             }
         }
 
