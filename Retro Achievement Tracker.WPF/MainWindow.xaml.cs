@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media.Animation;
 using Microsoft.Web.WebView2.Core;
 using RATracker.WPF.Http.V2;
@@ -499,7 +500,7 @@ public partial class MainWindow : Window
         if (_alertsOverlay.IsEditMode)
         {
             await _alertsOverlay.ExitEditModeAsync();
-            AlertEditModeButton.Content = "Edit Layout";
+            SetAlertEditModeLabel("Alerts_EditLayout");
             // Editing writes straight to settings, so pull the new values back into the controls.
             InitializeAlertLayoutSettings();
             InitializeCustomAlertSettings();
@@ -508,9 +509,25 @@ public partial class MainWindow : Window
         {
             _alertsOverlay.Activate();
             await _alertsOverlay.EnterEditModeAsync();
-            AlertEditModeButton.Content = "Done Editing";
+            SetAlertEditModeLabel("Alerts_DoneEditing");
         }
     }
+
+    /// <summary>
+    /// Re-points the edit-mode button at a different resource key.
+    /// </summary>
+    /// <remarks>
+    /// Assigning Content directly would work once and then permanently break the
+    /// XAML binding, leaving this the one button that stops following the language
+    /// setting. Swapping the binding keeps it live in both states.
+    /// </remarks>
+    private void SetAlertEditModeLabel(string key) =>
+        AlertEditModeButton.SetBinding(ContentControl.ContentProperty,
+            new Binding($"[{key}]")
+            {
+                Source = RATracker.Core.Localization.LocalizationService.Instance,
+                Mode = BindingMode.OneWay
+            });
 
     private void ResetAlertLayout_Click(object sender, RoutedEventArgs e)
     {
