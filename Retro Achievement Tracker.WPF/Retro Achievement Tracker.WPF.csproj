@@ -34,4 +34,8 @@
     <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\RATracker.Core\RATracker.Core.csproj" />
+  </ItemGroup>
+
 </Project>

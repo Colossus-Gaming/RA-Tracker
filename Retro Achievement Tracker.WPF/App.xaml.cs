@@ -28,6 +28,11 @@ public partial class App : Application
 
         base.OnStartup(e);
 
+        // Apply the saved UI language before any window is created, so the first frame is already
+        // in the right language rather than flashing English.
+        RATracker.Core.Localization.LocalizationService.Instance
+            .SetLanguage(SettingsService.Instance.Settings.Language);
+
         var args = e.Args;
 
 #if DEV_TOOLS

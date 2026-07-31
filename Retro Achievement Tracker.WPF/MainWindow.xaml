@@ -7,6 +7,7 @@ xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
 xmlns:converters="clr-namespace:RATracker.WPF.Converters"
 xmlns:behaviors="clr-namespace:RATracker.WPF.Behaviors"
 xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+xmlns:loc="clr-namespace:RATracker.Core.Localization;assembly=RATracker.Core"
 mc:Ignorable="d"
 Title="Retro Achievement Tracker"
 Height="790" Width="900"
@@ -1965,8 +1966,23 @@ Height="790" Width="900"
                         
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Text="General Settings" Style="{StaticResource SectionHeader}"/>
+                                    <TextBlock Text="{Binding [Settings_General], Source={x:Static loc:LocalizationService.Instance}}"
+                                               Style="{StaticResource SectionHeader}"/>
                                     <CheckBox Content="Auto-start polling when application opens" IsChecked="{Binding AutoStart}"/>
+
+                                    <!-- Language. Bound through LocalizationService's indexer, so switching
+                                         re-reads every localised string in place with no restart. -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                        <TextBlock Text="{Binding [Settings_Language], Source={x:Static loc:LocalizationService.Instance}}"
+                                                   VerticalAlignment="Center" Margin="0,0,10,0"
+                                                   Foreground="{StaticResource TextSecondary}"/>
+                                        <ComboBox x:Name="LanguageComboBox" Width="190"
+                                                  DisplayMemberPath="DisplayName"
+                                                  SelectionChanged="LanguageComboBox_SelectionChanged"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding [Settings_LanguageHint], Source={x:Static loc:LocalizationService.Instance}}"
+                                               TextWrapping="Wrap" Margin="0,8,0,0"
+                                               FontSize="11" Foreground="{StaticResource TextMuted}"/>
                                 </StackPanel>
                             </Border>
 

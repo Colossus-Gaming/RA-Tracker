@@ -277,6 +277,13 @@ public class AppSettings
     /// </summary>
     public double? AlertsOverlayY { get; set; }
 
+    /// <summary>
+    /// Two-letter UI language code (for example "de"). Empty means follow the operating system.
+    /// Only affects the application's own text — achievement names come from RetroAchievements and
+    /// are always English.
+    /// </summary>
+    public string Language { get; set; } = string.Empty;
+
     #region Updates
 
     /// <summary>

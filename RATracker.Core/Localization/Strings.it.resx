@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="App_Title" xml:space="preserve"><value>Retro Achievement Tracker</value></data>
+  <data name="Header_Username" xml:space="preserve"><value>Nome utente</value></data>
+  <data name="Header_Password" xml:space="preserve"><value>Password</value></data>
+  <data name="Header_Remember" xml:space="preserve"><value>Ricorda</value></data>
+  <data name="Header_Start" xml:space="preserve"><value>Avvia</value></data>
+  <data name="Header_Stop" xml:space="preserve"><value>Ferma</value></data>
+  <data name="Dash_CurrentGame" xml:space="preserve"><value>Gioco attuale</value></data>
+  <data name="Dash_Progress" xml:space="preserve"><value>Avanzamento</value></data>
+  <data name="Dash_Achievements" xml:space="preserve"><value>obiettivi</value></data>
+  <data name="Dash_Set" xml:space="preserve"><value>Set</value></data>
+  <data name="Dash_ViewGuide" xml:space="preserve"><value>Vedi guida</value></data>
+  <data name="Dash_OverlayWindows" xml:space="preserve"><value>Finestre overlay</value></data>
+  <data name="Dash_Settings" xml:space="preserve"><value>Impostazioni</value></data>
+  <data name="Dash_CurrentFocus" xml:space="preserve"><value>Focus attuale</value></data>
+  <data name="Dash_NoAchievementSelected" xml:space="preserve"><value>Nessun obiettivo selezionato</value></data>
+  <data name="Dash_Prev" xml:space="preserve"><value>Precedente</value></data>
+  <data name="Dash_SetFocus" xml:space="preserve"><value>Imposta focus</value></data>
+  <data name="Dash_Next" xml:space="preserve"><value>Successivo</value></data>
+  <data name="Overlay_Focus" xml:space="preserve"><value>Focus</value></data>
+  <data name="Overlay_Alerts" xml:space="preserve"><value>Avvisi</value></data>
+  <data name="Overlay_UserInfo" xml:space="preserve"><value>Info utente</value></data>
+  <data name="Overlay_GameInfo" xml:space="preserve"><value>Info gioco</value></data>
+  <data name="Overlay_Progress" xml:space="preserve"><value>Avanzamento</value></data>
+  <data name="Overlay_Recent" xml:space="preserve"><value>Recenti</value></data>
+  <data name="Overlay_CheevoSet" xml:space="preserve"><value>Elenco obiettivi</value></data>
+  <data name="Overlay_Media" xml:space="preserve"><value>Media</value></data>
+  <data name="Settings_General" xml:space="preserve"><value>Impostazioni generali</value></data>
+  <data name="Settings_Back" xml:space="preserve"><value>Indietro</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>Lingua</value></data>
+  <data name="Settings_LanguageHint" xml:space="preserve"><value>Le modifiche si applicano subito. I nomi degli obiettivi provengono da RetroAchievements e restano in inglese.</value></data>
+  <data name="Settings_Alerts" xml:space="preserve"><value>Impostazioni avvisi</value></data>
+  <data name="Alerts_TestAchievement" xml:space="preserve"><value>Prova obiettivo</value></data>
+  <data name="Alerts_TestMastery" xml:space="preserve"><value>Prova maestria</value></data>
+  <data name="Alerts_TestSubsetAchievement" xml:space="preserve"><value>Prova obiettivo bonus</value></data>
+  <data name="Alerts_TestSubsetMastery" xml:space="preserve"><value>Prova maestria bonus</value></data>
+  <data name="Alerts_AlertContainer" xml:space="preserve"><value>Contenitore avviso</value></data>
+  <data name="Alerts_CustomVideo" xml:space="preserve"><value>Avvisi video personalizzati</value></data>
+  <data name="Alerts_EditLayout" xml:space="preserve"><value>Modifica layout</value></data>
+  <data name="Alerts_DoneEditing" xml:space="preserve"><value>Fine modifica</value></data>
+  <data name="Alerts_ResetDefaults" xml:space="preserve"><value>Ripristina predefiniti</value></data>
+  <data name="Common_Browse" xml:space="preserve"><value>Sfoglia...</value></data>
+  <data name="Common_Clear" xml:space="preserve"><value>Cancella</value></data>
+</root>

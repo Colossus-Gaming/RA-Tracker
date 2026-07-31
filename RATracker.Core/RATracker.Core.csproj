@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Deliberately net8.0, NOT net8.0-windows. That is the whole point of this project: it is the
+         platform-neutral half of the app (RetroAchievements API access, mapping, tracking, settings,
+         stream labels) with no UI framework dependency, so a WPF shell and an Avalonia shell can
+         both consume it. If a Windows-only type ever creeps in here, this TFM makes it a build
+         error rather than a runtime surprise on macOS or Linux. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>RATracker.Core</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <!-- Cross-platform package; DPAPI itself is Windows-only at runtime, which is why credential
+         protection sits behind ICredentialProtector. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <!-- Velopack supports Windows, macOS and Linux, so the updater stays in the shared core. -->
+    <PackageReference Include="Velopack" Version="1.2.0" />
+  </ItemGroup>
+
+</Project>

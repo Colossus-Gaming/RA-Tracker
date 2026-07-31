@@ -368,6 +368,52 @@ public partial class MainWindow : Window
             vm.ValueFontSize = e.NewValue;
     }
 
+    #region Language
+
+    private bool _isInitializingLanguage;
+
+    /// <summary>
+    /// Fills the language dropdown and selects the saved language. Called when the General Settings
+    /// page is opened.
+    /// </summary>
+    private void InitializeLanguageSetting()
+    {
+        _isInitializingLanguage = true;
+        try
+        {
+            if (LanguageComboBox.Items.Count == 0)
+            {
+                foreach (var language in RATracker.Core.Localization.LocalizationService.AvailableLanguages)
+                {
+                    LanguageComboBox.Items.Add(language);
+                }
+            }
+
+            var saved = SettingsService.Instance.Settings.Language ?? string.Empty;
+            LanguageComboBox.SelectedItem = RATracker.Core.Localization.LocalizationService.AvailableLanguages
+                .FirstOrDefault(l => string.Equals(l.Code, saved, StringComparison.OrdinalIgnoreCase))
+                ?? RATracker.Core.Localization.LocalizationService.AvailableLanguages[0];
+        }
+        finally
+        {
+            _isInitializingLanguage = false;
+        }
+    }
+
+    private void LanguageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializingLanguage) return;
+        if (LanguageComboBox.SelectedItem is not RATracker.Core.Localization.LanguageOption selected) return;
+
+        SettingsService.Instance.Settings.Language = selected.Code;
+        SettingsService.Instance.ScheduleSave();
+
+        // Raises PropertyChanged for the indexer, so every bound string updates in place.
+        RATracker.Core.Localization.LocalizationService.Instance.SetLanguage(selected.Code);
+    }
+
+    #endregion
+
     #region Alert container shape settings
 
     private bool _isInitializingAlertLayoutSettings;
@@ -1607,7 +1653,11 @@ public partial class MainWindow : Window
         private void NavigateToRecentUnlocksSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(RecentUnlocksSettingsPage);
         private void NavigateToAchievementListSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(AchievementListSettingsPage);
         private void NavigateToRelatedMediaSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(RelatedMediaSettingsPage);
-        private void NavigateToGeneralSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(GeneralSettingsPage);
+        private void NavigateToGeneralSettings_Click(object sender, RoutedEventArgs e)
+        {
+            InitializeLanguageSetting();
+            NavigateToPage(GeneralSettingsPage);
+        }
         private void NavigateToGuidesPage_Click(object sender, RoutedEventArgs e)
         {
             NavigateToPage(GuidesPage);

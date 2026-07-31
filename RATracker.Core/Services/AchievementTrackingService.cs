@@ -17,7 +17,7 @@ public class AchievementTrackingService : IDisposable
     /// exercise overlays against a specific game without booting it, and remove that again before
     /// committing. Release builds cannot set it at all.</para>
     /// </summary>
-    internal static long DebugForceGameId;
+    public static long DebugForceGameId;
 
     private readonly IProgressService _progressService;
     private readonly ProgressStateTracker _stateTracker;
