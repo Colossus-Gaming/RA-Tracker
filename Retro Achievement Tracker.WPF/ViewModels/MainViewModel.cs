@@ -1928,10 +1928,29 @@ public class MainViewModel : ViewModelBase
 
     private void TestMasteryAlert()
     {
-        if (CurrentGame != null)
+        // Falls back to a sample game when nothing is loaded. Previously this was a bare
+        // `if (CurrentGame != null)` with no else, so pressing Test Mastery before a game had been
+        // resolved did nothing at all and gave no feedback — it read as "mastery alerts are broken".
+        // Every other test command already had a sample fallback; this one was the exception.
+        // The counts shown on a mastery alert are computed from the achievement list, so the sample
+        // needs a populated (fully earned) list rather than assigned totals.
+        var gameInfo = CurrentGame ?? new GameInfo
         {
-            GameMastered?.Invoke(this, CurrentGame);
-        }
+            Title = "Sample Game",
+            ConsoleName = "NES",
+            BadgeUri = "https://media.retroachievements.org/Images/000001.png",
+            Achievements = Enumerable.Range(1, 24)
+                .Select(i => new Achievement
+                {
+                    Id = i,
+                    Title = $"Sample Achievement {i}",
+                    Points = 10,
+                    DateEarned = DateTime.Now
+                })
+                .ToList()
+        };
+
+        GameMastered?.Invoke(this, gameInfo);
     }
 
     private void TestSubsetAchievementAlert()
