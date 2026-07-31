@@ -35,6 +35,11 @@ The app updates itself. It checks the latest release on startup, downloads anyth
 background, and installs it the next time you close the app — so an update can never restart you
 mid-stream. When one is waiting you will see a note in the header.
 
+## Using it
+
+See the [User Guide](docs/USER_GUIDE.md) for setup, positioning overlays in OBS, testing alerts, and
+using your own alert videos.
+
 ## Credentials
 
 Enter your username, Web API key, and password in the app, or supply them via environment variables (handy for repeated v2 testing). When set, env vars override the saved settings and are never written to disk:
