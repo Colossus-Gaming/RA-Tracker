@@ -143,17 +143,16 @@ public class SettingsService
 
     #region API Key Encryption
 
-    // Note: This is basic obfuscation using DPAPI, which ties the encrypted data
-    // to the current user account. For truly secure storage, consider using
-    // Windows Credential Manager or a proper secrets manager.
-
-    private static readonly byte[] EntropyBytes = "RATracker_v1"u8.ToArray();
+    // Secret protection is delegated to CredentialProtection.Current: DPAPI on Windows (unchanged
+    // behaviour and entropy, so keys saved by earlier releases still decrypt), and an encoding-only
+    // fallback elsewhere so the shared core can run on macOS and Linux. Check
+    // CredentialProtection.Current.IsEncrypted before implying to a user that a secret is secure.
 
     /// <summary>
-    /// Encrypts an API key for storage using Windows DPAPI.
+    /// Protects an API key for storage.
     /// </summary>
     /// <param name="apiKey">The plain text API key.</param>
-    /// <returns>A Base64-encoded encrypted string, or empty if input is empty.</returns>
+    /// <returns>A Base64-encoded string, or empty if input is empty.</returns>
     public static string EncryptApiKey(string apiKey)
     {
         if (string.IsNullOrEmpty(apiKey))
@@ -161,9 +160,7 @@ public class SettingsService
 
         try
         {
-            var plainBytes = Encoding.UTF8.GetBytes(apiKey);
-            var encryptedBytes = ProtectedData.Protect(plainBytes, EntropyBytes, DataProtectionScope.CurrentUser);
-            return Convert.ToBase64String(encryptedBytes);
+            return CredentialProtection.Current.Protect(apiKey);
         }
         catch (Exception ex)
         {
@@ -174,10 +171,10 @@ public class SettingsService
     }
 
     /// <summary>
-    /// Decrypts a stored API key using Windows DPAPI.
+    /// Reads a stored API key back.
     /// </summary>
-    /// <param name="encryptedKey">The Base64-encoded encrypted string.</param>
-    /// <returns>The plain text API key, or empty if input is empty or decryption fails.</returns>
+    /// <param name="encryptedKey">The Base64-encoded stored string.</param>
+    /// <returns>The plain text API key, or empty if input is empty or unreadable.</returns>
     public static string DecryptApiKey(string encryptedKey)
     {
         if (string.IsNullOrEmpty(encryptedKey))
@@ -185,13 +182,11 @@ public class SettingsService
 
         try
         {
-            var encryptedBytes = Convert.FromBase64String(encryptedKey);
-            var plainBytes = ProtectedData.Unprotect(encryptedBytes, EntropyBytes, DataProtectionScope.CurrentUser);
-            return Encoding.UTF8.GetString(plainBytes);
+            return CredentialProtection.Current.Unprotect(encryptedKey);
         }
         catch (CryptographicException)
         {
-            // May be plain text from fallback or old format
+            // May be plain text from a fallback path, or an older format.
             try
             {
                 var bytes = Convert.FromBase64String(encryptedKey);

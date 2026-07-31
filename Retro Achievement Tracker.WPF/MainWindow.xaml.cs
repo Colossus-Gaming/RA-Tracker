@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media.Animation;
 using Microsoft.Web.WebView2.Core;
 using RATracker.WPF.Http.V2;
@@ -368,6 +369,52 @@ public partial class MainWindow : Window
             vm.ValueFontSize = e.NewValue;
     }
 
+    #region Language
+
+    private bool _isInitializingLanguage;
+
+    /// <summary>
+    /// Fills the language dropdown and selects the saved language. Called when the General Settings
+    /// page is opened.
+    /// </summary>
+    private void InitializeLanguageSetting()
+    {
+        _isInitializingLanguage = true;
+        try
+        {
+            if (LanguageComboBox.Items.Count == 0)
+            {
+                foreach (var language in RATracker.Core.Localization.LocalizationService.AvailableLanguages)
+                {
+                    LanguageComboBox.Items.Add(language);
+                }
+            }
+
+            var saved = SettingsService.Instance.Settings.Language ?? string.Empty;
+            LanguageComboBox.SelectedItem = RATracker.Core.Localization.LocalizationService.AvailableLanguages
+                .FirstOrDefault(l => string.Equals(l.Code, saved, StringComparison.OrdinalIgnoreCase))
+                ?? RATracker.Core.Localization.LocalizationService.AvailableLanguages[0];
+        }
+        finally
+        {
+            _isInitializingLanguage = false;
+        }
+    }
+
+    private void LanguageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializingLanguage) return;
+        if (LanguageComboBox.SelectedItem is not RATracker.Core.Localization.LanguageOption selected) return;
+
+        SettingsService.Instance.Settings.Language = selected.Code;
+        SettingsService.Instance.ScheduleSave();
+
+        // Raises PropertyChanged for the indexer, so every bound string updates in place.
+        RATracker.Core.Localization.LocalizationService.Instance.SetLanguage(selected.Code);
+    }
+
+    #endregion
+
     #region Alert container shape settings
 
     private bool _isInitializingAlertLayoutSettings;
@@ -453,7 +500,7 @@ public partial class MainWindow : Window
         if (_alertsOverlay.IsEditMode)
         {
             await _alertsOverlay.ExitEditModeAsync();
-            AlertEditModeButton.Content = "Edit Layout";
+            SetAlertEditModeLabel("Alerts_EditLayout");
             // Editing writes straight to settings, so pull the new values back into the controls.
             InitializeAlertLayoutSettings();
             InitializeCustomAlertSettings();
@@ -462,9 +509,25 @@ public partial class MainWindow : Window
         {
             _alertsOverlay.Activate();
             await _alertsOverlay.EnterEditModeAsync();
-            AlertEditModeButton.Content = "Done Editing";
+            SetAlertEditModeLabel("Alerts_DoneEditing");
         }
     }
+
+    /// <summary>
+    /// Re-points the edit-mode button at a different resource key.
+    /// </summary>
+    /// <remarks>
+    /// Assigning Content directly would work once and then permanently break the
+    /// XAML binding, leaving this the one button that stops following the language
+    /// setting. Swapping the binding keeps it live in both states.
+    /// </remarks>
+    private void SetAlertEditModeLabel(string key) =>
+        AlertEditModeButton.SetBinding(ContentControl.ContentProperty,
+            new Binding($"[{key}]")
+            {
+                Source = RATracker.Core.Localization.LocalizationService.Instance,
+                Mode = BindingMode.OneWay
+            });
 
     private void ResetAlertLayout_Click(object sender, RoutedEventArgs e)
     {
@@ -1607,7 +1670,11 @@ public partial class MainWindow : Window
         private void NavigateToRecentUnlocksSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(RecentUnlocksSettingsPage);
         private void NavigateToAchievementListSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(AchievementListSettingsPage);
         private void NavigateToRelatedMediaSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(RelatedMediaSettingsPage);
-        private void NavigateToGeneralSettings_Click(object sender, RoutedEventArgs e) => NavigateToPage(GeneralSettingsPage);
+        private void NavigateToGeneralSettings_Click(object sender, RoutedEventArgs e)
+        {
+            InitializeLanguageSetting();
+            NavigateToPage(GeneralSettingsPage);
+        }
         private void NavigateToGuidesPage_Click(object sender, RoutedEventArgs e)
         {
             NavigateToPage(GuidesPage);

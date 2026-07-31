@@ -35,7 +35,20 @@ Optionally tick **Remember** so you do not have to type them again.
 
 ---
 
-## 3. "It doesn't show the game I'm playing"
+## 3. Changing the language
+
+Press the **⚙ gear** icon to open **General Settings**, then pick your language from
+the **Language** dropdown. The change takes effect straight away — no restart.
+
+Available: English, Deutsch, Português, Español, Français, Italiano, Nederlands, Polski.
+**System default** follows whatever language Windows is set to.
+
+One thing this does *not* translate: achievement and game names. Those come from
+RetroAchievements itself and only exist in English.
+
+---
+
+## 4. "It doesn't show the game I'm playing"
 
 The tracker does not watch your emulator. It asks RetroAchievements which game **your account** most
 recently played. So:
@@ -56,7 +69,7 @@ registered the new session yet. Play for a few seconds and it will catch up.
 
 ---
 
-## 4. The overlay windows look "wrong"
+## 5. The overlay windows look "wrong"
 
 They are supposed to. The overlay windows have **no title bar and no border**, and their background
 is fully transparent. That is what makes them usable as a stream overlay — OBS captures only the
@@ -87,7 +100,7 @@ Repeat per overlay you want on stream.
 
 ---
 
-## 5. Alerts
+## 6. Alerts
 
 ### Testing them
 
@@ -147,7 +160,7 @@ Press **Done Editing** when finished. Everything saves as you go.
 
 ---
 
-## 6. Updates
+## 7. Updates
 
 The app updates itself. It checks on startup, downloads in the background, and installs when you next
 close it — so an update can never interrupt a stream. When one is waiting you will see a note in the
@@ -155,7 +168,7 @@ top bar.
 
 ---
 
-## 7. Something went wrong
+## 8. Something went wrong
 
 Crash details are written to:
 

@@ -7,8 +7,9 @@ xmlns:vm="clr-namespace:RATracker.WPF.ViewModels"
 xmlns:converters="clr-namespace:RATracker.WPF.Converters"
 xmlns:behaviors="clr-namespace:RATracker.WPF.Behaviors"
 xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+xmlns:loc="clr-namespace:RATracker.WPF.Localization"
 mc:Ignorable="d"
-Title="Retro Achievement Tracker"
+Title="{loc:Loc App_Title}"
 Height="790" Width="900"
         ResizeMode="CanMinimize"
         Background="#1E1E1E"
@@ -360,7 +361,7 @@ Height="790" Width="900"
                 <StackPanel Grid.Column="0">
                     <StackPanel Orientation="Horizontal">
                         <StackPanel Margin="0,0,10,0">
-                            <TextBlock Text="Username" FontSize="12" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="{loc:Loc Header_Username}" FontSize="12" Foreground="{StaticResource TextMuted}"/>
                             <TextBox x:Name="UsernameTextBox"
                                      AutomationProperties.AutomationId="UsernameTextBox"
                                      Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
@@ -368,28 +369,30 @@ Height="790" Width="900"
                                      IsEnabled="{Binding IsNotPolling}"/>
                         </StackPanel>
                         <StackPanel Margin="0,0,8,0">
-                            <TextBlock Text="Password" FontSize="12" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="{loc:Loc Header_Password}" FontSize="12" Foreground="{StaticResource TextMuted}"/>
                             <PasswordBox x:Name="PasswordBox"
                                          AutomationProperties.AutomationId="PasswordBox"
                                          Width="180"
                                          IsEnabled="{Binding IsNotPolling}"
                                          PasswordChanged="PasswordBox_PasswordChanged"/>
                         </StackPanel>
-                        <CheckBox Content="Remember" IsChecked="{Binding RememberPassword}"
+                        <CheckBox Content="{loc:Loc Header_Remember}" IsChecked="{Binding RememberPassword}"
                                   Foreground="{StaticResource TextMuted}" FontSize="11"
                                   Margin="0,0,8,0" VerticalAlignment="Bottom" Padding="2,0,0,6"
                                   IsEnabled="{Binding IsNotPolling}"/>
                         <Button AutomationProperties.AutomationId="StartStopButton" Command="{Binding TogglePollingCommand}" Width="90" VerticalAlignment="Bottom">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource ModernButton}">
-                                    <Setter Property="Content" Value="&#x25B6; Start"/>
+                                    <Setter Property="Content" Value="{loc:Loc Header_Start}"/>
+                                    <Setter Property="ContentStringFormat" Value="&#x25B6; {0}"/>
                                     <Setter Property="Background" Value="#2D7D46"/>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter Property="Background" Value="#3D9D56"/>
                                         </Trigger>
                                         <DataTrigger Binding="{Binding IsPolling}" Value="True">
-                                            <Setter Property="Content" Value="&#x25A0; Stop"/>
+                                            <Setter Property="Content" Value="{loc:Loc Header_Stop}"/>
+                                            <Setter Property="ContentStringFormat" Value="&#x25A0; {0}"/>
                                             <Setter Property="Background" Value="#C42B1C"/>
                                         </DataTrigger>
                                         <MultiDataTrigger>
@@ -515,7 +518,7 @@ Height="790" Width="900"
                          use by pulling the progress summary out to the right edge. -->
                     <Border Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Current Game"/></TextBlock>
+                            <TextBlock Style="{StaticResource SectionHeader}"><Run Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets"/><Run Text=" "/><Run Text="{loc:Loc Dash_CurrentGame}"/></TextBlock>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -540,7 +543,9 @@ Height="790" Width="900"
                                     <!-- Achievement Set Selector + set-type badge -->
                                     <StackPanel Orientation="Horizontal" Margin="0,5,0,0"
                                                 Visibility="{Binding HasAchievementSets, Converter={StaticResource BoolToVis}}">
-                                        <TextBlock Text="Set: " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Loc Dash_Set}"
+                                                   Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                                        <TextBlock Text=": " Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
                                         <!-- Selected set-type badge, moved to the LEFT of the dropdown so a long
                                              set name can never push it off the panel/screen. -->
                                         <Border Margin="0,0,6,0" Padding="5,1" CornerRadius="5"
@@ -601,7 +606,8 @@ Height="790" Width="900"
                                 <StackPanel Grid.Column="2" VerticalAlignment="Top"
                                             HorizontalAlignment="Right" Margin="15,0,0,0">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <TextBlock Text="Progress: " Foreground="{StaticResource TextSecondary}"/>
+                                        <TextBlock Text="{loc:Loc Dash_Progress}" Foreground="{StaticResource TextSecondary}"/>
+                                        <TextBlock Text=": " Foreground="{StaticResource TextSecondary}"/>
                                         <TextBlock Text="{Binding GameCompletionText}" FontWeight="Bold">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
@@ -619,7 +625,7 @@ Height="790" Width="900"
                                         <Run Text="{Binding GameAchievementsEarned, Mode=OneWay}"/>
                                         <Run Text="/"/>
                                         <Run Text="{Binding GameAchievementsTotal, Mode=OneWay}"/>
-                                        <Run Text=" achievements"/>
+                                        <Run Text=" "/><Run Text="{loc:Loc Dash_Achievements}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Grid>
@@ -635,7 +641,7 @@ Height="790" Width="900"
                                         Padding="8,4" FontSize="12">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE82D;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                        <TextBlock Text="View Guide" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Loc Dash_ViewGuide}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
                                 <Button Style="{StaticResource ModernButton}" Click="OpenGuideInBrowser_Click"
@@ -650,13 +656,13 @@ Height="790" Width="900"
                     <Border Grid.Column="1" Grid.Row="1" Style="{StaticResource Card}">
                         <DockPanel>
                             <!-- Header -->
-                            <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionHeader}"><Run Text="&#xE81D;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Current Focus"/></TextBlock>
+                            <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionHeader}"><Run Text="&#xE81D;" FontFamily="Segoe MDL2 Assets"/><Run Text=" "/><Run Text="{loc:Loc Dash_CurrentFocus}"/></TextBlock>
                             
                             <!-- Navigation Buttons -->
                             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
-                                <Button Content="&#x25C0; Prev" Style="{StaticResource ModernButton}" Command="{Binding PreviousFocusCommand}" Width="80"/>
-                                <Button Content="Set Focus" Style="{StaticResource PrimaryButton}" Command="{Binding SetFocusCommand}" Width="100"/>
-                                <Button Content="Next &#x25B6;" Style="{StaticResource ModernButton}" Command="{Binding NextFocusCommand}" Width="80"/>
+                                <Button Content="{loc:Loc Dash_Prev}" ContentStringFormat="&#x25C0; {0}" Style="{StaticResource ModernButton}" Command="{Binding PreviousFocusCommand}" Width="80"/>
+                                <Button Content="{loc:Loc Dash_SetFocus}" Style="{StaticResource PrimaryButton}" Command="{Binding SetFocusCommand}" Width="100"/>
+                                <Button Content="{loc:Loc Dash_Next}" ContentStringFormat="{}{0} &#x25B6;" Style="{StaticResource ModernButton}" Command="{Binding NextFocusCommand}" Width="80"/>
                             </StackPanel>
                             
                             <!-- Achievement Info - fills remaining space -->
@@ -697,14 +703,14 @@ Height="790" Width="900"
                     <Border Grid.Column="0" Grid.Row="1" Style="{StaticResource Card}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <TextBlock Style="{StaticResource SectionHeader}" Margin="0"><Run Text="&#xE78B;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Overlay Windows"/></TextBlock>
+                                <TextBlock Style="{StaticResource SectionHeader}" Margin="0"><Run Text="&#xE78B;" FontFamily="Segoe MDL2 Assets"/><Run Text=" "/><Run Text="{loc:Loc Dash_OverlayWindows}"/></TextBlock>
                                 <Button Style="{StaticResource ModernButton}"
                                         Click="NavigateToGeneralSettings_Click"
                                         Padding="8,4" Margin="15,0,0,0" FontSize="13"
                                         VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                        <TextBlock Text="Settings" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Loc Dash_Settings}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -725,7 +731,7 @@ Height="790" Width="900"
                                     <Button Style="{StaticResource ModernButton}" Command="{Binding OpenFocusOverlayCommand}" Width="140">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xE81D;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                            <TextBlock Text="Focus" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Loc Overlay_Focus}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToFocusSettings_Click" ToolTip="Focus Settings"/>
@@ -735,7 +741,7 @@ Height="790" Width="900"
                                     <Button Style="{StaticResource ModernButton}" Command="{Binding OpenAlertsOverlayCommand}" Width="140">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                            <TextBlock Text="Alerts" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Loc Overlay_Alerts}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToAlertsSettings_Click" ToolTip="Alerts Settings"/>
@@ -745,7 +751,7 @@ Height="790" Width="900"
                                     <Button Style="{StaticResource ModernButton}" Command="{Binding OpenUserInfoOverlayCommand}" Width="140">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                            <TextBlock Text="User Info" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Loc Overlay_UserInfo}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToUserInfoSettings_Click" ToolTip="User Info Settings"/>
@@ -755,7 +761,7 @@ Height="790" Width="900"
                                     <Button Style="{StaticResource ModernButton}" Command="{Binding OpenGameInfoOverlayCommand}" Width="140">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                            <TextBlock Text="Game Info" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Loc Overlay_GameInfo}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToGameInfoSettings_Click" ToolTip="Game Info Settings"/>
@@ -765,7 +771,7 @@ Height="790" Width="900"
                                     <Button Style="{StaticResource ModernButton}" Command="{Binding OpenGameProgressOverlayCommand}" Width="140">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                            <TextBlock Text="Progress" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Loc Overlay_Progress}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToGameProgressSettings_Click" ToolTip="Progress Settings"/>
@@ -775,7 +781,7 @@ Height="790" Width="900"
                                     <Button Style="{StaticResource ModernButton}" Command="{Binding OpenRecentUnlocksOverlayCommand}" Width="140">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xE823;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                            <TextBlock Text="Recent" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Loc Overlay_Recent}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToRecentUnlocksSettings_Click" ToolTip="Recent Unlocks Settings"/>
@@ -785,7 +791,7 @@ Height="790" Width="900"
                                     <Button Style="{StaticResource ModernButton}" Command="{Binding OpenAchievementListOverlayCommand}" Width="140">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                            <TextBlock Text="Cheevo Set" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Loc Overlay_CheevoSet}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToAchievementListSettings_Click" ToolTip="Achievement List Settings"/>
@@ -795,7 +801,7 @@ Height="790" Width="900"
                                     <Button Style="{StaticResource ModernButton}" Command="{Binding OpenRelatedMediaOverlayCommand}" Width="140">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="&#xE8B9;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                            <TextBlock Text="Media" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Loc Overlay_Media}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Content="&#xE713;" Style="{StaticResource IconButton}" Click="NavigateToRelatedMediaSettings_Click" ToolTip="Media Settings"/>
@@ -815,7 +821,7 @@ Height="790" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <Button Content="{loc:Loc Settings_Back}" ContentStringFormat="&#x2190; {0}" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
                             <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE81D;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Focus Settings"/></TextBlock>
                         </StackPanel>
                         
@@ -827,7 +833,7 @@ Height="790" Width="900"
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                     <Button Content="Open Focus Window" Style="{StaticResource PrimaryButton}" 
                                             Command="{Binding OpenFocusOverlayCommand}"/>
-                                    <Button x:Name="ResetFocusLayoutButton" Content="Reset to Defaults" 
+                                    <Button x:Name="ResetFocusLayoutButton" Content="{loc:Loc Alerts_ResetDefaults}"
                                             Style="{StaticResource ModernButton}" Click="ResetFocusLayoutButton_Click"/>
                                 </StackPanel>
                             </StackPanel>
@@ -1041,8 +1047,8 @@ Height="790" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                            <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Alerts Settings"/></TextBlock>
+                            <Button Content="{loc:Loc Settings_Back}" ContentStringFormat="&#x2190; {0}" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets"/><Run Text=" "/><Run Text="{loc:Loc Settings_Alerts}"/></TextBlock>
                         </StackPanel>
                         
                         <Border Style="{StaticResource Card}">
@@ -1069,13 +1075,13 @@ Height="790" Width="900"
                                             <Button Style="{StaticResource ModernButton}" Command="{Binding TestAchievementAlertCommand}">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                                    <TextBlock Text="Test Achievement" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Loc Alerts_TestAchievement}" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource ModernButton}" Command="{Binding TestMasteryAlertCommand}">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                                    <TextBlock Text="Test Mastery" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Loc Alerts_TestMastery}" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
                                         </StackPanel>
@@ -1095,13 +1101,13 @@ Height="790" Width="900"
                                             <Button Style="{StaticResource ModernButton}" Command="{Binding TestSubsetAchievementAlertCommand}">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                                    <TextBlock Text="Test Subset Achievement" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Loc Alerts_TestSubsetAchievement}" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource ModernButton}" Command="{Binding TestSubsetMasteryAlertCommand}">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                                    <TextBlock Text="Test Subset Mastery" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Loc Alerts_TestSubsetMastery}" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
                                         </StackPanel>
@@ -1113,7 +1119,7 @@ Height="790" Width="900"
                         <!-- Alert Container Shape -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Alert Container" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Text="{loc:Loc Alerts_AlertContainer}" Style="{StaticResource SectionHeader}"/>
                                 <TextBlock TextWrapping="Wrap" Margin="0,0,0,12"
                                            Foreground="{StaticResource TextMuted}" FontSize="12"
                                            Text="Resize and reshape the alert panel. Height 0 sizes it to its content (the default banner). Moving the badge to the top or bottom turns the banner into a card; hiding it gives a text-only strip."/>
@@ -1153,10 +1159,10 @@ Height="790" Width="900"
                                     </StackPanel>
                                 </WrapPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                    <Button x:Name="AlertEditModeButton" Content="Edit Layout"
+                                    <Button x:Name="AlertEditModeButton" Content="{loc:Loc Alerts_EditLayout}"
                                             Style="{StaticResource PrimaryButton}"
                                             Click="ToggleAlertEditMode_Click"/>
-                                    <Button Content="Reset to Defaults" Style="{StaticResource ModernButton}"
+                                    <Button Content="{loc:Loc Alerts_ResetDefaults}" Style="{StaticResource ModernButton}"
                                             Click="ResetAlertLayout_Click"/>
                                 </StackPanel>
                                 <TextBlock TextWrapping="Wrap" Margin="0,8,0,0"
@@ -1168,7 +1174,7 @@ Height="790" Width="900"
                         <!-- Custom Video Alerts -->
                         <Border Style="{StaticResource Card}">
                             <StackPanel x:Name="CustomAlertsPanel">
-                                <TextBlock Text="Custom Video Alerts" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Text="{loc:Loc Alerts_CustomVideo}" Style="{StaticResource SectionHeader}"/>
                                 <TextBlock TextWrapping="Wrap" Margin="0,0,0,12"
                                            Foreground="{StaticResource TextMuted}" FontSize="12"
                                            Text="Play your own alpha-transparent .webm behind the alert panel. In/Out are positions on the VIDEO's timeline, not durations — the panel appears at In and leaves at Out, so it can land on a specific frame."/>
@@ -1185,9 +1191,9 @@ Height="790" Width="900"
                                             <TextBox x:Name="CustomAchievementPathTextBox" Width="330"
                                                      VerticalAlignment="Center" IsReadOnly="True"
                                                      ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-                                            <Button Content="Browse..." Style="{StaticResource ModernButton}"
+                                            <Button Content="{loc:Loc Common_Browse}" Style="{StaticResource ModernButton}"
                                                     Click="BrowseCustomAchievementVideo_Click"/>
-                                            <Button Content="Clear" Style="{StaticResource ModernButton}"
+                                            <Button Content="{loc:Loc Common_Clear}" Style="{StaticResource ModernButton}"
                                                     Click="ClearCustomAchievementVideo_Click"/>
                                         </StackPanel>
                                         <WrapPanel>
@@ -1254,9 +1260,9 @@ Height="790" Width="900"
                                             <TextBox x:Name="CustomMasteryPathTextBox" Width="330"
                                                      VerticalAlignment="Center" IsReadOnly="True"
                                                      ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-                                            <Button Content="Browse..." Style="{StaticResource ModernButton}"
+                                            <Button Content="{loc:Loc Common_Browse}" Style="{StaticResource ModernButton}"
                                                     Click="BrowseCustomMasteryVideo_Click"/>
-                                            <Button Content="Clear" Style="{StaticResource ModernButton}"
+                                            <Button Content="{loc:Loc Common_Clear}" Style="{StaticResource ModernButton}"
                                                     Click="ClearCustomMasteryVideo_Click"/>
                                         </StackPanel>
                                         <WrapPanel>
@@ -1325,7 +1331,7 @@ Height="790" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <Button Content="{loc:Loc Settings_Back}" ContentStringFormat="&#x2190; {0}" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
                             <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE77B;" FontFamily="Segoe MDL2 Assets"/><Run Text=" User Info Settings"/></TextBlock>
                         </StackPanel>
                         
@@ -1336,7 +1342,7 @@ Height="790" Width="900"
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                     <Button Content="Open User Info Window" Style="{StaticResource PrimaryButton}" 
                                             Command="{Binding OpenUserInfoOverlayCommand}"/>
-                                    <Button x:Name="ResetUserInfoLayoutButton" Content="Reset to Defaults" 
+                                    <Button x:Name="ResetUserInfoLayoutButton" Content="{loc:Loc Alerts_ResetDefaults}"
                                             Style="{StaticResource ModernButton}" Click="ResetUserInfoLayoutButton_Click"/>
                                 </StackPanel>
                             </StackPanel>
@@ -1426,7 +1432,7 @@ Height="790" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <Button Content="{loc:Loc Settings_Back}" ContentStringFormat="&#x2190; {0}" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
                             <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Game Info Settings"/></TextBlock>
                         </StackPanel>
                         
@@ -1437,7 +1443,7 @@ Height="790" Width="900"
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                     <Button Content="Open Game Info Window" Style="{StaticResource PrimaryButton}" 
                                             Command="{Binding OpenGameInfoOverlayCommand}"/>
-                                    <Button x:Name="ResetGameInfoLayoutButton" Content="Reset to Defaults" 
+                                    <Button x:Name="ResetGameInfoLayoutButton" Content="{loc:Loc Alerts_ResetDefaults}"
                                             Style="{StaticResource ModernButton}" Click="ResetGameInfoLayoutButton_Click"/>
                                 </StackPanel>
                             </StackPanel>
@@ -1556,7 +1562,7 @@ Height="790" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <Button Content="{loc:Loc Settings_Back}" ContentStringFormat="&#x2190; {0}" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
                             <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Game Progress Settings"/></TextBlock>
                         </StackPanel>
                         
@@ -1567,7 +1573,7 @@ Height="790" Width="900"
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                     <Button Content="Open Game Progress Window" Style="{StaticResource PrimaryButton}" 
                                             Command="{Binding OpenGameProgressOverlayCommand}"/>
-                                    <Button x:Name="ResetGameProgressLayoutButton" Content="Reset to Defaults" 
+                                    <Button x:Name="ResetGameProgressLayoutButton" Content="{loc:Loc Alerts_ResetDefaults}"
                                             Style="{StaticResource ModernButton}" Click="ResetGameProgressLayoutButton_Click"/>
                                 </StackPanel>
                             </StackPanel>
@@ -1659,7 +1665,7 @@ Height="790" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <Button Content="{loc:Loc Settings_Back}" ContentStringFormat="&#x2190; {0}" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
                             <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE823;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Recent Unlocks Settings"/></TextBlock>
                         </StackPanel>
                         
@@ -1670,7 +1676,7 @@ Height="790" Width="900"
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                     <Button Content="Open Recent Unlocks Window" Style="{StaticResource PrimaryButton}" 
                                             Command="{Binding OpenRecentUnlocksOverlayCommand}"/>
-                                    <Button x:Name="ResetRecentUnlocksLayoutButton" Content="Reset to Defaults" 
+                                    <Button x:Name="ResetRecentUnlocksLayoutButton" Content="{loc:Loc Alerts_ResetDefaults}"
                                             Style="{StaticResource ModernButton}" Click="ResetRecentUnlocksLayoutButton_Click"/>
                                 </StackPanel>
                             </StackPanel>
@@ -1781,7 +1787,7 @@ Height="790" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <Button Content="{loc:Loc Settings_Back}" ContentStringFormat="&#x2190; {0}" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
                             <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Achievement List Settings"/></TextBlock>
                         </StackPanel>
                         
@@ -1792,7 +1798,7 @@ Height="790" Width="900"
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                     <Button Content="Open Achievement List Window" Style="{StaticResource PrimaryButton}" 
                                             Command="{Binding OpenAchievementListOverlayCommand}"/>
-                                    <Button x:Name="ResetAchievementListLayoutButton" Content="Reset to Defaults" 
+                                    <Button x:Name="ResetAchievementListLayoutButton" Content="{loc:Loc Alerts_ResetDefaults}"
                                             Style="{StaticResource ModernButton}" Click="ResetAchievementListLayoutButton_Click"/>
                                 </StackPanel>
                             </StackPanel>
@@ -1874,7 +1880,7 @@ Height="790" Width="900"
                     <StackPanel Margin="15">
                         <!-- Header with Back Button -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                            <Button Content="{loc:Loc Settings_Back}" ContentStringFormat="&#x2190; {0}" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
                             <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE8B9;" FontFamily="Segoe MDL2 Assets"/><Run Text=" Related Media Settings"/></TextBlock>
                         </StackPanel>
                         
@@ -1885,7 +1891,7 @@ Height="790" Width="900"
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                     <Button Content="Open Related Media Window" Style="{StaticResource PrimaryButton}" 
                                             Command="{Binding OpenRelatedMediaOverlayCommand}"/>
-                                    <Button x:Name="ResetRelatedMediaLayoutButton" Content="Reset to Defaults" 
+                                    <Button x:Name="ResetRelatedMediaLayoutButton" Content="{loc:Loc Alerts_ResetDefaults}"
                                             Style="{StaticResource ModernButton}" Click="ResetRelatedMediaLayoutButton_Click"/>
                                 </StackPanel>
                             </StackPanel>
@@ -1959,14 +1965,29 @@ Height="790" Width="900"
                         <StackPanel Margin="15">
                             <!-- Header with Back Button -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                                <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
-                                <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE713;" FontFamily="Segoe MDL2 Assets"/><Run Text=" General Settings"/></TextBlock>
+                                <Button Content="{loc:Loc Settings_Back}" ContentStringFormat="&#x2190; {0}" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click"/>
+                                <TextBlock Style="{StaticResource PageHeader}"><Run Text="&#xE713;" FontFamily="Segoe MDL2 Assets"/><Run Text=" "/><Run Text="{loc:Loc Settings_General}"/></TextBlock>
                             </StackPanel>
                         
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock Text="General Settings" Style="{StaticResource SectionHeader}"/>
+                                    <TextBlock Text="{loc:Loc Settings_General}"
+                                               Style="{StaticResource SectionHeader}"/>
                                     <CheckBox Content="Auto-start polling when application opens" IsChecked="{Binding AutoStart}"/>
+
+                                    <!-- Language. Bound through LocalizationService's indexer, so switching
+                                         re-reads every localised string in place with no restart. -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                        <TextBlock Text="{loc:Loc Settings_Language}"
+                                                   VerticalAlignment="Center" Margin="0,0,10,0"
+                                                   Foreground="{StaticResource TextSecondary}"/>
+                                        <ComboBox x:Name="LanguageComboBox" Width="190"
+                                                  DisplayMemberPath="DisplayName"
+                                                  SelectionChanged="LanguageComboBox_SelectionChanged"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{loc:Loc Settings_LanguageHint}"
+                                               TextWrapping="Wrap" Margin="0,8,0,0"
+                                               FontSize="11" Foreground="{StaticResource TextMuted}"/>
                                 </StackPanel>
                             </Border>
 
@@ -2137,7 +2158,7 @@ Height="790" Width="900"
                     <!-- Header -->
                     <Border Grid.Row="0" Background="{StaticResource BackgroundMedium}" Padding="10">
                         <DockPanel>
-                            <Button Content="&#x2190; Back" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click" DockPanel.Dock="Left"/>
+                            <Button Content="{loc:Loc Settings_Back}" ContentStringFormat="&#x2190; {0}" Style="{StaticResource BackButton}" Click="NavigateBackToDashboard_Click" DockPanel.Dock="Left"/>
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="10,0,0,0">
                                 <Button Style="{StaticResource ModernButton}" Click="GuidesRefresh_Click" Padding="6,4" ToolTip="Refresh">
                                     <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets"/>

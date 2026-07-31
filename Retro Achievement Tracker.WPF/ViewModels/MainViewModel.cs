@@ -884,7 +884,10 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public string FocusTitle => CurrentFocusAchievement?.Title ?? "No achievement selected";
+    // The achievement's own title comes from RetroAchievements and is English-only;
+    // only the empty-state placeholder is ours to translate.
+    public string FocusTitle => CurrentFocusAchievement?.Title
+                                ?? RATracker.Core.Localization.LocalizationService.Instance["Dash_NoAchievementSelected"];
     public string FocusDescription => CurrentFocusAchievement?.Description ?? string.Empty;
     public string FocusPoints => CurrentFocusAchievement?.Points.ToString() ?? "0";
     public string FocusBadgeUri => CurrentFocusAchievement?.BadgeUri ?? string.Empty;

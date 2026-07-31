@@ -1,0 +1,43 @@
+key	en	de	pt	es	fr	it	nl	pl
+App_Title	Retro Achievement Tracker	Retro Achievement Tracker	Retro Achievement Tracker	Retro Achievement Tracker	Retro Achievement Tracker	Retro Achievement Tracker	Retro Achievement Tracker	Retro Achievement Tracker
+Header_Username	Username	Benutzername	Nome de utilizador	Nombre de usuario	Nom d'utilisateur	Nome utente	Gebruikersnaam	Nazwa użytkownika
+Header_Password	Password	Passwort	Palavra-passe	Contraseña	Mot de passe	Password	Wachtwoord	Hasło
+Header_Remember	Remember	Merken	Memorizar	Recordar	Se souvenir	Ricorda	Onthouden	Zapamiętaj
+Header_Start	Start	Starten	Iniciar	Iniciar	Démarrer	Avvia	Starten	Start
+Header_Stop	Stop	Stopp	Parar	Detener	Arrêter	Ferma	Stoppen	Stop
+Dash_CurrentGame	Current Game	Aktuelles Spiel	Jogo atual	Juego actual	Jeu en cours	Gioco attuale	Huidig spel	Bieżąca gra
+Dash_Progress	Progress	Fortschritt	Progresso	Progreso	Progression	Avanzamento	Voortgang	Postęp
+Dash_Achievements	achievements	Erfolge	proezas	logros	succès	obiettivi	prestaties	osiągnięcia
+Dash_Set	Set	Satz	Conjunto	Conjunto	Ensemble	Set	Set	Zestaw
+Dash_ViewGuide	View Guide	Anleitung	Ver guia	Ver guía	Voir le guide	Vedi guida	Gids bekijken	Zobacz poradnik
+Dash_OverlayWindows	Overlay Windows	Overlay-Fenster	Janelas de sobreposição	Ventanas superpuestas	Fenêtres de superposition	Finestre overlay	Overlayvensters	Okna nakładki
+Dash_Settings	Settings	Einstellungen	Definições	Ajustes	Paramètres	Impostazioni	Instellingen	Ustawienia
+Dash_CurrentFocus	Current Focus	Aktueller Fokus	Foco atual	Foco actual	Objectif actuel	Focus attuale	Huidige focus	Bieżący cel
+Dash_NoAchievementSelected	No achievement selected	Kein Erfolg ausgewählt	Nenhuma proeza selecionada	Ningún logro seleccionado	Aucun succès sélectionné	Nessun obiettivo selezionato	Geen prestatie geselecteerd	Nie wybrano osiągnięcia
+Dash_Prev	Prev	Zurück	Anterior	Anterior	Précédent	Precedente	Vorige	Poprzedni
+Dash_SetFocus	Set Focus	Fokus setzen	Definir foco	Fijar foco	Définir le focus	Imposta focus	Focus instellen	Ustaw cel
+Dash_Next	Next	Weiter	Seguinte	Siguiente	Suivant	Successivo	Volgende	Następny
+Overlay_Focus	Focus	Fokus	Foco	Foco	Focus	Focus	Focus	Cel
+Overlay_Alerts	Alerts	Benachrichtigungen	Alertas	Alertas	Alertes	Avvisi	Meldingen	Alerty
+Overlay_UserInfo	User Info	Benutzerinfo	Info do utilizador	Info de usuario	Infos utilisateur	Info utente	Gebruikersinfo	Info użytkownika
+Overlay_GameInfo	Game Info	Spielinfo	Info do jogo	Info del juego	Infos du jeu	Info gioco	Spelinfo	Info o grze
+Overlay_Progress	Progress	Fortschritt	Progresso	Progreso	Progression	Avanzamento	Voortgang	Postęp
+Overlay_Recent	Recent	Zuletzt	Recentes	Recientes	Récents	Recenti	Recent	Ostatnie
+Overlay_CheevoSet	Cheevo Set	Erfolgsliste	Lista de proezas	Lista de logros	Liste des succès	Elenco obiettivi	Prestatielijst	Lista osiągnięć
+Overlay_Media	Media	Medien	Multimédia	Multimedia	Médias	Media	Media	Media
+Settings_General	General Settings	Allgemeine Einstellungen	Definições gerais	Ajustes generales	Paramètres généraux	Impostazioni generali	Algemene instellingen	Ustawienia ogólne
+Settings_Back	Back	Zurück	Voltar	Atrás	Retour	Indietro	Terug	Wstecz
+Settings_Language	Language	Sprache	Idioma	Idioma	Langue	Lingua	Taal	Język
+Settings_LanguageHint	Changes apply immediately. Achievement names come from RetroAchievements and stay in English.	Änderungen gelten sofort. Erfolgsnamen stammen von RetroAchievements und bleiben auf Englisch.	As alterações aplicam-se de imediato. Os nomes das proezas vêm do RetroAchievements e permanecem em inglês.	Los cambios se aplican de inmediato. Los nombres de los logros provienen de RetroAchievements y permanecen en inglés.	Les modifications s'appliquent immédiatement. Les noms des succès proviennent de RetroAchievements et restent en anglais.	Le modifiche si applicano subito. I nomi degli obiettivi provengono da RetroAchievements e restano in inglese.	Wijzigingen zijn direct van kracht. Prestatienamen komen van RetroAchievements en blijven in het Engels.	Zmiany działają natychmiast. Nazwy osiągnięć pochodzą z RetroAchievements i pozostają po angielsku.
+Settings_Alerts	Alerts Settings	Benachrichtigungseinstellungen	Definições de alertas	Ajustes de alertas	Paramètres des alertes	Impostazioni avvisi	Meldingsinstellingen	Ustawienia alertów
+Alerts_TestAchievement	Test Achievement	Erfolg testen	Testar proeza	Probar logro	Tester un succès	Prova obiettivo	Prestatie testen	Testuj osiągnięcie
+Alerts_TestMastery	Test Mastery	Meisterschaft testen	Testar maestria	Probar maestría	Tester la maîtrise	Prova maestria	Meesterschap testen	Testuj mistrzostwo
+Alerts_TestSubsetAchievement	Test Subset Achievement	Bonus-Erfolg testen	Testar proeza de subconjunto	Probar logro de subconjunto	Tester un succès bonus	Prova obiettivo bonus	Bonusprestatie testen	Testuj osiągnięcie dodatkowe
+Alerts_TestSubsetMastery	Test Subset Mastery	Bonus-Meisterschaft testen	Testar maestria de subconjunto	Probar maestría de subconjunto	Tester la maîtrise bonus	Prova maestria bonus	Bonusmeesterschap testen	Testuj mistrzostwo dodatkowe
+Alerts_AlertContainer	Alert Container	Benachrichtigungsfeld	Contentor do alerta	Contenedor de alerta	Conteneur d'alerte	Contenitore avviso	Meldingsvenster	Kontener alertu
+Alerts_CustomVideo	Custom Video Alerts	Eigene Video-Benachrichtigungen	Alertas de vídeo personalizados	Alertas de vídeo personalizados	Alertes vidéo personnalisées	Avvisi video personalizzati	Aangepaste videomeldingen	Własne alerty wideo
+Alerts_EditLayout	Edit Layout	Layout bearbeiten	Editar disposição	Editar diseño	Modifier la disposition	Modifica layout	Lay-out bewerken	Edytuj układ
+Alerts_DoneEditing	Done Editing	Bearbeitung beenden	Concluir edição	Terminar edición	Terminer l'édition	Fine modifica	Klaar met bewerken	Zakończ edycję
+Alerts_ResetDefaults	Reset to Defaults	Auf Standard zurücksetzen	Repor predefinições	Restablecer valores	Réinitialiser	Ripristina predefiniti	Standaardwaarden herstellen	Przywróć domyślne
+Common_Browse	Browse...	Durchsuchen...	Procurar...	Examinar...	Parcourir...	Sfoglia...	Bladeren...	Przeglądaj...
+Common_Clear	Clear	Löschen	Limpar	Borrar	Effacer	Cancella	Wissen	Wyczyść
